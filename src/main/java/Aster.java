@@ -3,13 +3,14 @@ import java.util.Scanner;
 /**
  * Entry point for the Aster chatbot.
  *
- * <p>At this stage Aster greets the user and reads commands until {@code bye}.
- * The commands {@code todo}, {@code deadline} and {@code event} add a task of
- * the matching type, {@code list} shows the stored tasks with their type and
- * done status, and {@code mark <number>} and {@code unmark <number>} change the
- * done status of one task. Any other command is still stored as a plain task,
- * as it was before typed tasks existed. Tasks are held in memory only; nothing
- * is saved to disk.
+ * <p>Aster greets the user and reads commands until {@code bye}. The commands
+ * {@code todo}, {@code deadline} and {@code event} add a task of the matching type,
+ * {@code list} shows the stored tasks with their type and done status, and
+ * {@code mark <number>} and {@code unmark <number>} change the done status of one
+ * task. Anything else is refused with an explanation: unrecognised commands, missing
+ * descriptions, missing, repeated or out-of-order {@code /by}, {@code /from} and
+ * {@code /to} parts, and unusable task numbers. A refused command leaves the task
+ * list unchanged. Tasks are held in memory only; nothing is saved to disk.
  */
 public class Aster {
     /**
@@ -17,23 +18,20 @@ public class Aster {
      */
     private static final int MAX_TASKS = 100;
 
-    private static final String MARK_PREFIX = "mark ";
-    private static final String UNMARK_PREFIX = "unmark ";
-    private static final String TODO_PREFIX = "todo ";
-    private static final String DEADLINE_PREFIX = "deadline ";
-    private static final String EVENT_PREFIX = "event ";
+    // Markers are matched as whole words, so wording inside a description cannot be
+    // mistaken for one of them.
+    private static final String BY_MARKER = "/by";
+    private static final String FROM_MARKER = "/from";
+    private static final String TO_MARKER = "/to";
 
-    // The surrounding spaces keep these markers from matching text inside a description.
-    private static final String BY_SEPARATOR = " /by ";
-    private static final String FROM_SEPARATOR = " /from ";
-    private static final String TO_SEPARATOR = " /to ";
+    private static final String TODO_USAGE = "Try: todo read book";
+    private static final String DEADLINE_USAGE = "Try: deadline return book /by Sunday";
+    private static final String EVENT_USAGE = "Try: event project meeting /from Mon 2pm /to 4pm";
 
     /**
-     * Greets the user, then reads commands from standard input until {@code bye}
-     * or the end of input. The command {@code list} shows the stored tasks in the
-     * order they were added, {@code mark} and {@code unmark} change the done
-     * status of one task, {@code todo}, {@code deadline} and {@code event} add a
-     * task of that type, and any other command is stored as a plain task.
+     * Greets the user, then reads commands from standard input until {@code bye} or
+     * the end of input. Each command is handled in turn, and any command Aster cannot
+     * carry out is reported without changing the task list.
      *
      * @param args command line arguments; not used
      */
@@ -54,54 +52,18 @@ public class Aster {
         Scanner scanner = new Scanner(System.in);
         // hasNextLine() also ends the loop cleanly if the input stops before "bye".
         while (scanner.hasNextLine()) {
-            String command = scanner.nextLine();
+            String command = scanner.nextLine().trim();
+            // Only the exact command leaves; "bye" with anything after it is an error.
             if (command.equals("bye")) {
                 break;
             }
             System.out.println(divider);
-            if (command.equals("list")) {
-                // Numbering shown to the user is 1-based, so it is offset from the index.
-                for (int i = 0; i < taskCount; i++) {
-                    System.out.println((i + 1) + ". " + tasks[i]);
-                }
-            } else if (command.startsWith(UNMARK_PREFIX)) {
-                Task task = tasks[parseTaskIndex(command, UNMARK_PREFIX)];
-                task.markAsNotDone();
-                System.out.println("Alright, I've marked this task as not done yet:");
-                System.out.println("  " + task);
-            } else if (command.startsWith(MARK_PREFIX)) {
-                Task task = tasks[parseTaskIndex(command, MARK_PREFIX)];
-                task.markAsDone();
-                System.out.println("Nice! I've marked this task as done:");
-                System.out.println("  " + task);
-            } else if (command.startsWith(TODO_PREFIX)) {
-                tasks[taskCount] = new Todo(command.substring(TODO_PREFIX.length()));
-                taskCount++;
-                printAdded(tasks[taskCount - 1], taskCount);
-            } else if (command.startsWith(DEADLINE_PREFIX)) {
-                // Command formats are assumed valid; checking them belongs to Level-5.
-                String details = command.substring(DEADLINE_PREFIX.length());
-                int byAt = details.indexOf(BY_SEPARATOR);
-                String description = details.substring(0, byAt);
-                String by = details.substring(byAt + BY_SEPARATOR.length());
-                tasks[taskCount] = new Deadline(description, by);
-                taskCount++;
-                printAdded(tasks[taskCount - 1], taskCount);
-            } else if (command.startsWith(EVENT_PREFIX)) {
-                String details = command.substring(EVENT_PREFIX.length());
-                int fromAt = details.indexOf(FROM_SEPARATOR);
-                // Search for /to after /from so a description cannot hide the real marker.
-                int toAt = details.indexOf(TO_SEPARATOR, fromAt + FROM_SEPARATOR.length());
-                String description = details.substring(0, fromAt);
-                String from = details.substring(fromAt + FROM_SEPARATOR.length(), toAt);
-                String to = details.substring(toAt + TO_SEPARATOR.length());
-                tasks[taskCount] = new Event(description, from, to);
-                taskCount++;
-                printAdded(tasks[taskCount - 1], taskCount);
-            } else {
-                tasks[taskCount] = new Task(command);
-                taskCount++;
-                System.out.println("added: " + command);
+            // Every failure surfaces here, so nothing else prints errors, and taskCount
+            // keeps its previous value whenever a command is refused.
+            try {
+                taskCount = handleCommand(command, tasks, taskCount);
+            } catch (AsterException e) {
+                System.out.println(e.getMessage());
             }
             System.out.println(divider);
         }
@@ -112,29 +74,292 @@ public class Aster {
     }
 
     /**
-     * Reports a newly added typed task and how many tasks are now stored.
+     * Carries out one command and returns the number of tasks stored afterwards.
      *
-     * @param task the task that was just added
-     * @param taskCount the number of tasks stored after the addition
+     * <p>Every check happens before the task list is touched, so a command that throws
+     * leaves the list exactly as it was.
+     *
+     * @param command the trimmed command line entered by the user
+     * @param tasks the task list, holding {@code taskCount} tasks
+     * @param taskCount the number of tasks stored before this command
+     * @return the number of tasks stored after this command
+     * @throws AsterException if the command cannot be understood or carried out
      */
-    private static void printAdded(Task task, int taskCount) {
-        String noun = taskCount == 1 ? "task" : "tasks";
-        System.out.println("Got it. I've added this task:");
-        System.out.println("  " + task);
-        System.out.println("Now you have " + taskCount + " " + noun + " in the list.");
+    private static int handleCommand(String command, Task[] tasks, int taskCount)
+            throws AsterException {
+        // The command is already trimmed, so this separates the keyword from the rest.
+        String[] parts = command.split("\\s+", 2);
+        String keyword = parts[0];
+        String arguments = parts.length > 1 ? parts[1] : "";
+
+        return switch (keyword) {
+            case "" -> throw new AsterException("I didn't catch a command. Type list to see "
+                    + "your tasks, or bye to leave.");
+            case "bye" -> throw new AsterException("To leave, type bye on its own, with "
+                    + "nothing after it.");
+            case "list" -> {
+                requireNoArguments(arguments, "list");
+                printList(tasks, taskCount);
+                yield taskCount;
+            }
+            case "mark" -> {
+                Task task = tasks[parseTaskIndex(arguments, taskCount, "mark")];
+                task.markAsDone();
+                System.out.println("Nice! I've marked this task as done:");
+                System.out.println("  " + task);
+                yield taskCount;
+            }
+            case "unmark" -> {
+                Task task = tasks[parseTaskIndex(arguments, taskCount, "unmark")];
+                task.markAsNotDone();
+                System.out.println("Alright, I've marked this task as not done yet:");
+                System.out.println("  " + task);
+                yield taskCount;
+            }
+            case "todo" -> {
+                String description = requireNonEmpty(arguments,
+                        "A todo needs a description. " + TODO_USAGE);
+                yield addTask(tasks, taskCount, new Todo(description));
+            }
+            case "deadline" -> addDeadline(tasks, taskCount, arguments);
+            case "event" -> addEvent(tasks, taskCount, arguments);
+            default -> throw new AsterException("I don't recognise \"" + keyword + "\". I "
+                    + "understand: todo, deadline, event, list, mark, unmark and bye.");
+        };
     }
 
     /**
-     * Converts the 1-based task number in a mark or unmark command into a 0-based
-     * array index. The number is assumed to be present and valid; validating user
-     * input belongs to a later increment.
+     * Adds the deadline described by the arguments of a {@code deadline} command.
      *
-     * @param command the full command line entered by the user
-     * @param prefix the command prefix that precedes the task number
-     * @return the 0-based index of the task the command refers to
+     * @param tasks the task list
+     * @param taskCount the number of tasks stored before this command
+     * @param arguments everything the user typed after the keyword
+     * @return the number of tasks stored after the addition
+     * @throws AsterException if the description, the {@code /by} marker or its value is
+     *     missing, or {@code /by} appears more than once
      */
-    private static int parseTaskIndex(String command, String prefix) {
-        String number = command.substring(prefix.length());
-        return Integer.parseInt(number) - 1;
+    private static int addDeadline(Task[] tasks, int taskCount, String arguments)
+            throws AsterException {
+        requireExactlyOne(arguments, BY_MARKER, "deadline", DEADLINE_USAGE);
+        int byAt = indexOfMarker(arguments, BY_MARKER, 0);
+        String description = requireNonEmpty(arguments.substring(0, byAt),
+                "A deadline needs a description before /by. " + DEADLINE_USAGE);
+        String by = requireNonEmpty(arguments.substring(byAt + BY_MARKER.length()),
+                "The /by part needs a date or time after it. " + DEADLINE_USAGE);
+        return addTask(tasks, taskCount, new Deadline(description, by));
+    }
+
+    /**
+     * Adds the event described by the arguments of an {@code event} command.
+     *
+     * @param tasks the task list
+     * @param taskCount the number of tasks stored before this command
+     * @param arguments everything the user typed after the keyword
+     * @return the number of tasks stored after the addition
+     * @throws AsterException if the description or either marker value is missing, if a
+     *     marker is repeated, or if {@code /to} comes before {@code /from}
+     */
+    private static int addEvent(Task[] tasks, int taskCount, String arguments)
+            throws AsterException {
+        requireExactlyOne(arguments, FROM_MARKER, "event", EVENT_USAGE);
+        requireExactlyOne(arguments, TO_MARKER, "event", EVENT_USAGE);
+        int fromAt = indexOfMarker(arguments, FROM_MARKER, 0);
+        int toAt = indexOfMarker(arguments, TO_MARKER, 0);
+        if (toAt < fromAt) {
+            throw new AsterException("An event needs /from before /to. " + EVENT_USAGE);
+        }
+        String description = requireNonEmpty(arguments.substring(0, fromAt),
+                "An event needs a description before /from. " + EVENT_USAGE);
+        String from = requireNonEmpty(arguments.substring(fromAt + FROM_MARKER.length(), toAt),
+                "The /from part needs a start time after it. " + EVENT_USAGE);
+        String to = requireNonEmpty(arguments.substring(toAt + TO_MARKER.length()),
+                "The /to part needs an end time after it. " + EVENT_USAGE);
+        return addTask(tasks, taskCount, new Event(description, from, to));
+    }
+
+    /**
+     * Stores a task, reports it, and returns the new number of stored tasks.
+     *
+     * @param tasks the task list
+     * @param taskCount the number of tasks stored before the addition
+     * @param task the task to store
+     * @return the number of tasks stored after the addition
+     * @throws AsterException if the list already holds {@link #MAX_TASKS} tasks
+     */
+    private static int addTask(Task[] tasks, int taskCount, Task task) throws AsterException {
+        if (taskCount >= MAX_TASKS) {
+            throw new AsterException("My list is full at " + MAX_TASKS + " tasks, so I cannot "
+                    + "add another one.");
+        }
+        tasks[taskCount] = task;
+        int newCount = taskCount + 1;
+        System.out.println("Got it. I've added this task:");
+        System.out.println("  " + task);
+        System.out.println("Now you have " + newCount + " " + taskNoun(newCount) + " in the list.");
+        return newCount;
+    }
+
+    /**
+     * Prints the stored tasks in the order they were added.
+     *
+     * @param tasks the task list
+     * @param taskCount the number of tasks stored
+     */
+    private static void printList(Task[] tasks, int taskCount) {
+        // An empty list prints nothing, exactly as it did before Level-5.
+        // Numbering shown to the user is 1-based, so it is offset from the index.
+        for (int i = 0; i < taskCount; i++) {
+            System.out.println((i + 1) + ". " + tasks[i]);
+        }
+    }
+
+    /**
+     * Converts the task number in a mark or unmark command into a 0-based array index.
+     *
+     * <p>Every way the number can be unusable is turned into an {@link AsterException},
+     * so no {@code NumberFormatException} or array exception reaches the user.
+     *
+     * @param arguments everything the user typed after the keyword
+     * @param taskCount the number of tasks stored
+     * @param keyword the command name, used in the messages
+     * @return the 0-based index of the task the command refers to
+     * @throws AsterException if the number is missing, not a number, or outside the list
+     */
+    private static int parseTaskIndex(String arguments, int taskCount, String keyword)
+            throws AsterException {
+        if (arguments.isEmpty()) {
+            throw new AsterException("Tell me which task to " + keyword + ". Try: " + keyword
+                    + " 2");
+        }
+        if (taskCount == 0) {
+            throw new AsterException("Your list is empty, so there is nothing to " + keyword
+                    + " yet.");
+        }
+        int number;
+        try {
+            number = Integer.parseInt(arguments);
+        } catch (NumberFormatException e) {
+            throw new AsterException("\"" + arguments + "\" is not a task number. Try: "
+                    + keyword + " 2");
+        }
+        if (number < 1 || number > taskCount) {
+            throw new AsterException("You have " + taskCount + " " + taskNoun(taskCount)
+                    + ", so " + number + " is out of range. Pick a number from 1 to "
+                    + taskCount + ".");
+        }
+        return number - 1;
+    }
+
+    /**
+     * Checks that a command that takes no arguments was given none.
+     *
+     * @param arguments everything the user typed after the keyword
+     * @param keyword the command name, used in the message
+     * @throws AsterException if anything followed the keyword
+     */
+    private static void requireNoArguments(String arguments, String keyword)
+            throws AsterException {
+        if (!arguments.isEmpty()) {
+            throw new AsterException("The " + keyword + " command takes nothing after it. Type "
+                    + keyword + " on its own.");
+        }
+    }
+
+    /**
+     * Returns the trimmed text, provided it is not blank.
+     *
+     * @param value the text to check
+     * @param message the explanation to report if the text is blank
+     * @return the text without surrounding spaces
+     * @throws AsterException if the text is empty or only spaces
+     */
+    private static String requireNonEmpty(String value, String message) throws AsterException {
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            throw new AsterException(message);
+        }
+        return trimmed;
+    }
+
+    /**
+     * Checks that a marker such as {@code /by} appears exactly once.
+     *
+     * @param arguments everything the user typed after the keyword
+     * @param marker the marker to count
+     * @param taskType the task type named in the messages
+     * @param usage an example of the correct command
+     * @throws AsterException if the marker is missing or appears more than once
+     */
+    private static void requireExactlyOne(String arguments, String marker, String taskType,
+            String usage) throws AsterException {
+        int count = countMarkers(arguments, marker);
+        if (count == 0) {
+            throw new AsterException("A" + article(taskType) + taskType + " needs a " + marker
+                    + " part. " + usage);
+        }
+        if (count > 1) {
+            throw new AsterException("A" + article(taskType) + taskType + " can have only one "
+                    + marker + " part. " + usage);
+        }
+    }
+
+    /**
+     * Returns the letters that turn {@code "a"} into {@code "an"} where needed.
+     *
+     * @param word the word that follows the article
+     * @return {@code "n "} before a vowel, otherwise {@code " "}
+     */
+    private static String article(String word) {
+        return "aeiou".indexOf(word.charAt(0)) >= 0 ? "n " : " ";
+    }
+
+    /**
+     * Counts how many times a marker appears as a whole word.
+     *
+     * @param text the text to search
+     * @param marker the marker to count
+     * @return the number of occurrences
+     */
+    private static int countMarkers(String text, String marker) {
+        int count = 0;
+        int at = indexOfMarker(text, marker, 0);
+        while (at >= 0) {
+            count++;
+            at = indexOfMarker(text, marker, at + marker.length());
+        }
+        return count;
+    }
+
+    /**
+     * Finds a marker that stands as a word of its own, so that wording such as
+     * {@code /byte} inside a description is not mistaken for {@code /by}.
+     *
+     * @param text the text to search
+     * @param marker the marker to find
+     * @param fromIndex the position to start searching from
+     * @return the index of the marker, or {@code -1} if it does not occur
+     */
+    private static int indexOfMarker(String text, String marker, int fromIndex) {
+        int at = text.indexOf(marker, fromIndex);
+        while (at >= 0) {
+            boolean startsWord = at == 0 || Character.isWhitespace(text.charAt(at - 1));
+            int after = at + marker.length();
+            boolean endsWord = after == text.length() || Character.isWhitespace(text.charAt(after));
+            if (startsWord && endsWord) {
+                return at;
+            }
+            at = text.indexOf(marker, at + 1);
+        }
+        return -1;
+    }
+
+    /**
+     * Returns the singular or plural form of {@code task} for a count.
+     *
+     * @param count the number of tasks
+     * @return {@code "task"} if the count is one, otherwise {@code "tasks"}
+     */
+    private static String taskNoun(int count) {
+        return count == 1 ? "task" : "tasks";
     }
 }
