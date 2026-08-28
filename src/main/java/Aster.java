@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -5,19 +7,15 @@ import java.util.Scanner;
  *
  * <p>Aster greets the user and reads commands until {@code bye}. The commands
  * {@code todo}, {@code deadline} and {@code event} add a task of the matching type,
- * {@code list} shows the stored tasks with their type and done status, and
+ * {@code list} shows the stored tasks with their type and done status,
  * {@code mark <number>} and {@code unmark <number>} change the done status of one
- * task. Anything else is refused with an explanation: unrecognised commands, missing
- * descriptions, missing, repeated or out-of-order {@code /by}, {@code /from} and
- * {@code /to} parts, and unusable task numbers. A refused command leaves the task
- * list unchanged. Tasks are held in memory only; nothing is saved to disk.
+ * task, and {@code delete <number>} removes one task. Anything else is refused with
+ * an explanation: unrecognised commands, missing descriptions, missing, repeated or
+ * out-of-order {@code /by}, {@code /from} and {@code /to} parts, and unusable task
+ * numbers. A refused command leaves the task list unchanged. Tasks are held in
+ * memory only; nothing is saved to disk.
  */
 public class Aster {
-    /**
-     * Maximum number of tasks Aster can hold, as permitted by the requirements.
-     */
-    private static final int MAX_TASKS = 100;
-
     // Markers are matched as whole words, so wording inside a description cannot be
     // mistaken for one of them.
     private static final String BY_MARKER = "/by";
@@ -38,10 +36,10 @@ public class Aster {
     public static void main(String[] args) {
         final String divider = "____________________________________________________________";
 
-        // Fixed-size array is sufficient because at most MAX_TASKS tasks are assumed.
-        // It holds every task type, since each subclass is also a Task.
-        Task[] tasks = new Task[MAX_TASKS];
-        int taskCount = 0;
+        // An ArrayList grows as needed, so no capacity is assumed and the number of
+        // tasks is always tasks.size() rather than a separately tracked count. It
+        // holds every task type, since each subclass is also a Task.
+        List<Task> tasks = new ArrayList<>();
 
         System.out.println(divider);
         System.out.println("Hello! I'm Aster.");
@@ -58,10 +56,10 @@ public class Aster {
                 break;
             }
             System.out.println(divider);
-            // Every failure surfaces here, so nothing else prints errors, and taskCount
-            // keeps its previous value whenever a command is refused.
+            // Every failure surfaces here, so nothing else prints errors, and the list
+            // keeps its previous contents whenever a command is refused.
             try {
-                taskCount = handleCommand(command, tasks, taskCount);
+                handleCommand(command, tasks);
             } catch (AsterException e) {
                 System.out.println(e.getMessage());
             }
@@ -74,93 +72,91 @@ public class Aster {
     }
 
     /**
-     * Carries out one command and returns the number of tasks stored afterwards.
+     * Carries out one command.
      *
      * <p>Every check happens before the task list is touched, so a command that throws
      * leaves the list exactly as it was.
      *
      * @param command the trimmed command line entered by the user
-     * @param tasks the task list, holding {@code taskCount} tasks
-     * @param taskCount the number of tasks stored before this command
-     * @return the number of tasks stored after this command
+     * @param tasks the task list, modified in place by commands that add or remove
      * @throws AsterException if the command cannot be understood or carried out
      */
-    private static int handleCommand(String command, Task[] tasks, int taskCount)
-            throws AsterException {
+    private static void handleCommand(String command, List<Task> tasks) throws AsterException {
         // The command is already trimmed, so this separates the keyword from the rest.
         String[] parts = command.split("\\s+", 2);
         String keyword = parts[0];
         String arguments = parts.length > 1 ? parts[1] : "";
 
-        return switch (keyword) {
+        switch (keyword) {
             case "" -> throw new AsterException("I didn't catch a command. Type list to see "
                     + "your tasks, or bye to leave.");
             case "bye" -> throw new AsterException("To leave, type bye on its own, with "
                     + "nothing after it.");
             case "list" -> {
                 requireNoArguments(arguments, "list");
-                printList(tasks, taskCount);
-                yield taskCount;
+                printList(tasks);
             }
             case "mark" -> {
-                Task task = tasks[parseTaskIndex(arguments, taskCount, "mark")];
+                Task task = tasks.get(parseTaskIndex(arguments, tasks, "mark"));
                 task.markAsDone();
                 System.out.println("Nice! I've marked this task as done:");
                 System.out.println("  " + task);
-                yield taskCount;
             }
             case "unmark" -> {
-                Task task = tasks[parseTaskIndex(arguments, taskCount, "unmark")];
+                Task task = tasks.get(parseTaskIndex(arguments, tasks, "unmark"));
                 task.markAsNotDone();
                 System.out.println("Alright, I've marked this task as not done yet:");
                 System.out.println("  " + task);
-                yield taskCount;
+            }
+            case "delete" -> {
+                // The number is validated before anything is removed, so a refused
+                // delete leaves the list unchanged. remove() then closes the gap, which
+                // is what renumbers the remaining tasks in the next list.
+                Task task = tasks.remove(parseTaskIndex(arguments, tasks, "delete"));
+                System.out.println("Noted. I've removed this task:");
+                System.out.println("  " + task);
+                printCount(tasks);
             }
             case "todo" -> {
                 String description = requireNonEmpty(arguments,
                         "A todo needs a description. " + TODO_USAGE);
-                yield addTask(tasks, taskCount, new Todo(description));
+                addTask(tasks, new Todo(description));
             }
-            case "deadline" -> addDeadline(tasks, taskCount, arguments);
-            case "event" -> addEvent(tasks, taskCount, arguments);
+            case "deadline" -> addDeadline(tasks, arguments);
+            case "event" -> addEvent(tasks, arguments);
             default -> throw new AsterException("I don't recognise \"" + keyword + "\". I "
-                    + "understand: todo, deadline, event, list, mark, unmark and bye.");
-        };
+                    + "understand: todo, deadline, event, list, mark, unmark, delete "
+                    + "and bye.");
+        }
     }
 
     /**
      * Adds the deadline described by the arguments of a {@code deadline} command.
      *
      * @param tasks the task list
-     * @param taskCount the number of tasks stored before this command
      * @param arguments everything the user typed after the keyword
-     * @return the number of tasks stored after the addition
      * @throws AsterException if the description, the {@code /by} marker or its value is
      *     missing, or {@code /by} appears more than once
      */
-    private static int addDeadline(Task[] tasks, int taskCount, String arguments)
-            throws AsterException {
+    private static void addDeadline(List<Task> tasks, String arguments) throws AsterException {
         requireExactlyOne(arguments, BY_MARKER, "deadline", DEADLINE_USAGE);
         int byAt = indexOfMarker(arguments, BY_MARKER, 0);
         String description = requireNonEmpty(arguments.substring(0, byAt),
                 "A deadline needs a description before /by. " + DEADLINE_USAGE);
         String by = requireNonEmpty(arguments.substring(byAt + BY_MARKER.length()),
                 "The /by part needs a date or time after it. " + DEADLINE_USAGE);
-        return addTask(tasks, taskCount, new Deadline(description, by));
+        addTask(tasks, new Deadline(description, by));
     }
 
     /**
      * Adds the event described by the arguments of an {@code event} command.
      *
      * @param tasks the task list
-     * @param taskCount the number of tasks stored before this command
      * @param arguments everything the user typed after the keyword
-     * @return the number of tasks stored after the addition
      * @throws AsterException if the description or either marker value is missing, if a
      *     marker is repeated, or if {@code /to} comes before {@code /from}
      */
-    private static int addEvent(Task[] tasks, int taskCount, String arguments)
-            throws AsterException {
+    private static void addEvent(List<Task> tasks, String arguments) throws AsterException {
         requireExactlyOne(arguments, FROM_MARKER, "event", EVENT_USAGE);
         requireExactlyOne(arguments, TO_MARKER, "event", EVENT_USAGE);
         int fromAt = indexOfMarker(arguments, FROM_MARKER, 0);
@@ -174,59 +170,61 @@ public class Aster {
                 "The /from part needs a start time after it. " + EVENT_USAGE);
         String to = requireNonEmpty(arguments.substring(toAt + TO_MARKER.length()),
                 "The /to part needs an end time after it. " + EVENT_USAGE);
-        return addTask(tasks, taskCount, new Event(description, from, to));
+        addTask(tasks, new Event(description, from, to));
     }
 
     /**
-     * Stores a task, reports it, and returns the new number of stored tasks.
+     * Stores a task and reports it together with the new number of stored tasks.
      *
      * @param tasks the task list
-     * @param taskCount the number of tasks stored before the addition
      * @param task the task to store
-     * @return the number of tasks stored after the addition
-     * @throws AsterException if the list already holds {@link #MAX_TASKS} tasks
      */
-    private static int addTask(Task[] tasks, int taskCount, Task task) throws AsterException {
-        if (taskCount >= MAX_TASKS) {
-            throw new AsterException("My list is full at " + MAX_TASKS + " tasks, so I cannot "
-                    + "add another one.");
-        }
-        tasks[taskCount] = task;
-        int newCount = taskCount + 1;
+    private static void addTask(List<Task> tasks, Task task) {
+        // The list grows on demand, so there is no capacity to check before adding.
+        tasks.add(task);
         System.out.println("Got it. I've added this task:");
         System.out.println("  " + task);
-        System.out.println("Now you have " + newCount + " " + taskNoun(newCount) + " in the list.");
-        return newCount;
+        printCount(tasks);
+    }
+
+    /**
+     * Prints how many tasks the list holds, as shown after adding or removing one.
+     *
+     * @param tasks the task list
+     */
+    private static void printCount(List<Task> tasks) {
+        int count = tasks.size();
+        System.out.println("Now you have " + count + " " + taskNoun(count) + " in the list.");
     }
 
     /**
      * Prints the stored tasks in the order they were added.
      *
      * @param tasks the task list
-     * @param taskCount the number of tasks stored
      */
-    private static void printList(Task[] tasks, int taskCount) {
+    private static void printList(List<Task> tasks) {
         // An empty list prints nothing, exactly as it did before Level-5.
         // Numbering shown to the user is 1-based, so it is offset from the index.
-        for (int i = 0; i < taskCount; i++) {
-            System.out.println((i + 1) + ". " + tasks[i]);
+        for (int i = 0; i < tasks.size(); i++) {
+            System.out.println((i + 1) + ". " + tasks.get(i));
         }
     }
 
     /**
-     * Converts the task number in a mark or unmark command into a 0-based array index.
+     * Converts the task number in a mark, unmark or delete command into a list index.
      *
      * <p>Every way the number can be unusable is turned into an {@link AsterException},
-     * so no {@code NumberFormatException} or array exception reaches the user.
+     * so no {@code NumberFormatException} or index exception reaches the user.
      *
      * @param arguments everything the user typed after the keyword
-     * @param taskCount the number of tasks stored
+     * @param tasks the task list the number refers to
      * @param keyword the command name, used in the messages
      * @return the 0-based index of the task the command refers to
      * @throws AsterException if the number is missing, not a number, or outside the list
      */
-    private static int parseTaskIndex(String arguments, int taskCount, String keyword)
+    private static int parseTaskIndex(String arguments, List<Task> tasks, String keyword)
             throws AsterException {
+        int taskCount = tasks.size();
         if (arguments.isEmpty()) {
             throw new AsterException("Tell me which task to " + keyword + ". Try: " + keyword
                     + " 2");
