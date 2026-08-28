@@ -52,7 +52,7 @@ public class Aster {
         while (scanner.hasNextLine()) {
             String command = scanner.nextLine().trim();
             // Only the exact command leaves; "bye" with anything after it is an error.
-            if (command.equals("bye")) {
+            if (command.equals(Command.BYE.keyword())) {
                 break;
             }
             System.out.println(divider);
@@ -87,46 +87,51 @@ public class Aster {
         String keyword = parts[0];
         String arguments = parts.length > 1 ? parts[1] : "";
 
-        switch (keyword) {
-            case "" -> throw new AsterException("I didn't catch a command. Type list to see "
+        // A blank line has no keyword to look up, so it is answered before the lookup.
+        if (keyword.isEmpty()) {
+            throw new AsterException("I didn't catch a command. Type list to see "
                     + "your tasks, or bye to leave.");
-            case "bye" -> throw new AsterException("To leave, type bye on its own, with "
+        }
+
+        // Listing case null alongside the constants makes this switch exhaustive, so
+        // the compiler reports any command added to Command but not handled here.
+        switch (Command.fromKeyword(keyword)) {
+            case null -> throw new AsterException("I don't recognise \"" + keyword + "\". I "
+                    + "understand: " + Command.keywordList() + ".");
+            case BYE -> throw new AsterException("To leave, type bye on its own, with "
                     + "nothing after it.");
-            case "list" -> {
-                requireNoArguments(arguments, "list");
+            case LIST -> {
+                requireNoArguments(arguments, Command.LIST);
                 printList(tasks);
             }
-            case "mark" -> {
-                Task task = tasks.get(parseTaskIndex(arguments, tasks, "mark"));
+            case MARK -> {
+                Task task = tasks.get(parseTaskIndex(arguments, tasks, Command.MARK));
                 task.markAsDone();
                 System.out.println("Nice! I've marked this task as done:");
                 System.out.println("  " + task);
             }
-            case "unmark" -> {
-                Task task = tasks.get(parseTaskIndex(arguments, tasks, "unmark"));
+            case UNMARK -> {
+                Task task = tasks.get(parseTaskIndex(arguments, tasks, Command.UNMARK));
                 task.markAsNotDone();
                 System.out.println("Alright, I've marked this task as not done yet:");
                 System.out.println("  " + task);
             }
-            case "delete" -> {
+            case DELETE -> {
                 // The number is validated before anything is removed, so a refused
                 // delete leaves the list unchanged. remove() then closes the gap, which
                 // is what renumbers the remaining tasks in the next list.
-                Task task = tasks.remove(parseTaskIndex(arguments, tasks, "delete"));
+                Task task = tasks.remove(parseTaskIndex(arguments, tasks, Command.DELETE));
                 System.out.println("Noted. I've removed this task:");
                 System.out.println("  " + task);
                 printCount(tasks);
             }
-            case "todo" -> {
+            case TODO -> {
                 String description = requireNonEmpty(arguments,
                         "A todo needs a description. " + TODO_USAGE);
                 addTask(tasks, new Todo(description));
             }
-            case "deadline" -> addDeadline(tasks, arguments);
-            case "event" -> addEvent(tasks, arguments);
-            default -> throw new AsterException("I don't recognise \"" + keyword + "\". I "
-                    + "understand: todo, deadline, event, list, mark, unmark, delete "
-                    + "and bye.");
+            case DEADLINE -> addDeadline(tasks, arguments);
+            case EVENT -> addEvent(tasks, arguments);
         }
     }
 
@@ -218,12 +223,13 @@ public class Aster {
      *
      * @param arguments everything the user typed after the keyword
      * @param tasks the task list the number refers to
-     * @param keyword the command name, used in the messages
+     * @param command the command being carried out, named in the messages
      * @return the 0-based index of the task the command refers to
      * @throws AsterException if the number is missing, not a number, or outside the list
      */
-    private static int parseTaskIndex(String arguments, List<Task> tasks, String keyword)
+    private static int parseTaskIndex(String arguments, List<Task> tasks, Command command)
             throws AsterException {
+        String keyword = command.keyword();
         int taskCount = tasks.size();
         if (arguments.isEmpty()) {
             throw new AsterException("Tell me which task to " + keyword + ". Try: " + keyword
@@ -252,12 +258,13 @@ public class Aster {
      * Checks that a command that takes no arguments was given none.
      *
      * @param arguments everything the user typed after the keyword
-     * @param keyword the command name, used in the message
+     * @param command the command being carried out, named in the message
      * @throws AsterException if anything followed the keyword
      */
-    private static void requireNoArguments(String arguments, String keyword)
+    private static void requireNoArguments(String arguments, Command command)
             throws AsterException {
         if (!arguments.isEmpty()) {
+            String keyword = command.keyword();
             throw new AsterException("The " + keyword + " command takes nothing after it. Type "
                     + keyword + " on its own.");
         }
