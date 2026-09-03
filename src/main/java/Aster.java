@@ -1,5 +1,6 @@
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Scanner;
 
@@ -12,10 +13,10 @@ import java.util.Scanner;
  * {@code mark <number>} and {@code unmark <number>} change the done status of one
  * task, and {@code delete <number>} removes one task. Anything else is refused with
  * an explanation: unrecognised commands, missing descriptions, missing, repeated or
- * out-of-order {@code /by}, {@code /from} and {@code /to} parts, and unusable task
- * numbers. A refused command leaves the task list unchanged. The tasks are saved
- * whenever the list changes, and read back when Aster next starts, so the list
- * survives leaving and returning.
+ * out-of-order {@code /by}, {@code /from} and {@code /to} parts, dates not written
+ * as {@code yyyy-MM-dd}, and unusable task numbers. A refused command leaves the
+ * task list unchanged. The tasks are saved whenever the list changes, and read
+ * back when Aster next starts, so the list survives leaving and returning.
  */
 public class Aster {
     // Kept relative, and built from its parts rather than written with a separator, so
@@ -29,8 +30,11 @@ public class Aster {
     private static final String TO_MARKER = "/to";
 
     private static final String TODO_USAGE = "Try: todo read book";
-    private static final String DEADLINE_USAGE = "Try: deadline return book /by Sunday";
-    private static final String EVENT_USAGE = "Try: event project meeting /from Mon 2pm /to 4pm";
+    private static final String DEADLINE_USAGE = "Try: deadline return book /by 2019-12-02";
+    private static final String EVENT_USAGE = "Try: event project meeting /from 2019-12-02 "
+            + "/to 2019-12-03";
+    private static final String DATE_USAGE = "Dates go in the form yyyy-MM-dd, for example "
+            + "2019-12-02.";
 
     /**
      * Reads any saved tasks, greets the user, then reads commands from standard input
@@ -175,10 +179,10 @@ public class Aster {
     /**
      * Adds the deadline described by the arguments of a {@code deadline} command.
      *
-     * @param tasks the task list
-     * @param arguments everything the user typed after the keyword
+     * @param tasks the task list.
+     * @param arguments everything the user typed after the keyword.
      * @throws AsterException if the description, the {@code /by} marker or its value is
-     *     missing, or {@code /by} appears more than once
+     *     missing, if {@code /by} appears more than once, or if the value is not a date.
      */
     private static void addDeadline(List<Task> tasks, String arguments) throws AsterException {
         requireExactlyOne(arguments, BY_MARKER, "deadline", DEADLINE_USAGE);
@@ -186,17 +190,18 @@ public class Aster {
         String description = requireNonEmpty(arguments.substring(0, byAt),
                 "A deadline needs a description before /by. " + DEADLINE_USAGE);
         String by = requireNonEmpty(arguments.substring(byAt + BY_MARKER.length()),
-                "The /by part needs a date or time after it. " + DEADLINE_USAGE);
-        addTask(tasks, new Deadline(description, by));
+                "The /by part needs a date after it. " + DEADLINE_USAGE);
+        addTask(tasks, new Deadline(description, requireDate(by)));
     }
 
     /**
      * Adds the event described by the arguments of an {@code event} command.
      *
-     * @param tasks the task list
-     * @param arguments everything the user typed after the keyword
+     * @param tasks the task list.
+     * @param arguments everything the user typed after the keyword.
      * @throws AsterException if the description or either marker value is missing, if a
-     *     marker is repeated, or if {@code /to} comes before {@code /from}
+     *     marker is repeated, if {@code /to} comes before {@code /from}, or if either
+     *     value is not a date.
      */
     private static void addEvent(List<Task> tasks, String arguments) throws AsterException {
         requireExactlyOne(arguments, FROM_MARKER, "event", EVENT_USAGE);
@@ -209,10 +214,10 @@ public class Aster {
         String description = requireNonEmpty(arguments.substring(0, fromAt),
                 "An event needs a description before /from. " + EVENT_USAGE);
         String from = requireNonEmpty(arguments.substring(fromAt + FROM_MARKER.length(), toAt),
-                "The /from part needs a start time after it. " + EVENT_USAGE);
+                "The /from part needs a start date after it. " + EVENT_USAGE);
         String to = requireNonEmpty(arguments.substring(toAt + TO_MARKER.length()),
-                "The /to part needs an end time after it. " + EVENT_USAGE);
-        addTask(tasks, new Event(description, from, to));
+                "The /to part needs an end date after it. " + EVENT_USAGE);
+        addTask(tasks, new Event(description, requireDate(from), requireDate(to)));
     }
 
     /**
@@ -321,6 +326,26 @@ public class Aster {
             throw new AsterException(message);
         }
         return trimmed;
+    }
+
+    /**
+     * Returns the date the given text holds.
+     *
+     * <p>This mirrors {@link #requireNonEmpty}: it turns something the user typed into
+     * the value a task needs, or explains why it cannot. Because it is called before
+     * the task is created, text that is not a date leaves the task list untouched.
+     *
+     * @param value the text the user typed after a date marker.
+     * @return the date that text holds.
+     * @throws AsterException if the text is not a date written in the accepted form.
+     */
+    private static LocalDate requireDate(String value) throws AsterException {
+        LocalDate date = TaskDates.parseOrNull(value);
+        if (date == null) {
+            throw new AsterException("I couldn't read \"" + value + "\" as a date. "
+                    + DATE_USAGE);
+        }
+        return date;
     }
 
     /**

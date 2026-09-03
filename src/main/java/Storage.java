@@ -6,6 +6,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +15,7 @@ import java.util.List;
  *
  * <p>Each task is one line, in the order the tasks are held. A line is a type tag,
  * a done flag and then the fields that type needs, separated by {@code " | "}, for
- * example {@code D | 0 | return book | June 6th}. Both halves of that format live in
+ * example {@code D | 0 | return book | 2019-06-06}. Both halves of that format live in
  * this one class, so the way a task is written and the way it is read back cannot
  * drift apart.
  *
@@ -25,6 +26,10 @@ import java.util.List;
  *
  * <p>A blank line carries no task and is not part of the format, so the reader passes
  * over one wherever it appears. Every other line must be a complete record.
+ *
+ * <p>Dates are stored in the ISO form {@code yyyy-MM-dd}, which is numeric and names
+ * no month, so a file written on one computer reads the same on any other whatever
+ * each is configured to.
  */
 public class Storage {
     private static final String SEPARATOR = " | ";
@@ -166,9 +171,10 @@ public class Storage {
         return switch (task) {
             case Todo todo -> join(TODO_TAG, done, description);
             case Deadline deadline -> join(DEADLINE_TAG, done, description,
-                    escape(deadline.getBy()));
-            case Event event -> join(EVENT_TAG, done, description, escape(event.getFrom()),
-                    escape(event.getTo()));
+                    escape(TaskDates.toStorage(deadline.getBy())));
+            case Event event -> join(EVENT_TAG, done, description,
+                    escape(TaskDates.toStorage(event.getFrom())),
+                    escape(TaskDates.toStorage(event.getTo())));
             default -> throw new AsterException(unknownTypeMessage());
         };
     }
@@ -199,13 +205,13 @@ public class Storage {
             case DEADLINE_TAG -> {
                 requireFieldCount(fields, DEADLINE_FIELDS);
                 yield new Deadline(requireFilled(description),
-                        requireFilled(fields.get(FIRST_DETAIL_INDEX)));
+                        requireDate(fields.get(FIRST_DETAIL_INDEX)));
             }
             case EVENT_TAG -> {
                 requireFieldCount(fields, EVENT_FIELDS);
                 yield new Event(requireFilled(description),
-                        requireFilled(fields.get(FIRST_DETAIL_INDEX)),
-                        requireFilled(fields.get(SECOND_DETAIL_INDEX)));
+                        requireDate(fields.get(FIRST_DETAIL_INDEX)),
+                        requireDate(fields.get(SECOND_DETAIL_INDEX)));
             }
             default -> throw new AsterException(unreadableFileMessage());
         };
@@ -321,6 +327,25 @@ public class Storage {
             throw new AsterException(unreadableFileMessage());
         }
         return field;
+    }
+
+    /**
+     * Returns the date a stored field holds.
+     *
+     * <p>A field that does not hold a date makes the whole record unreadable, which is
+     * also what happens to a file written before dates were stored in this form: the
+     * file is left exactly as it is for the user to look at.
+     *
+     * @param field the field to read, already without surrounding spaces.
+     * @return the date the field holds.
+     * @throws AsterException if the field does not hold a date in the stored form.
+     */
+    private LocalDate requireDate(String field) throws AsterException {
+        LocalDate date = TaskDates.parseOrNull(field);
+        if (date == null) {
+            throw new AsterException(unreadableFileMessage());
+        }
+        return date;
     }
 
     /**
