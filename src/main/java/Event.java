@@ -22,6 +22,24 @@ public class Event extends Task {
     }
 
     /**
+     * Returns the start date or time of this event.
+     *
+     * @return the start date or time, as written by the user.
+     */
+    public String getFrom() {
+        return from;
+    }
+
+    /**
+     * Returns the end date or time of this event.
+     *
+     * @return the end date or time, as written by the user.
+     */
+    public String getTo() {
+        return to;
+    }
+
+    /**
      * Returns this event as its type marker, the inherited status and
      * description, and both endpoints, for example
      * {@code [E][ ] project meeting (from: Aug 6th 2pm to: 4pm)}.

@@ -29,6 +29,27 @@ public class Task {
     }
 
     /**
+     * Returns whether this task has been marked as done.
+     *
+     * <p>This reports the status itself, rather than the icon {@link #getStatusIcon()}
+     * shows, so that code which stores a task does not depend on how one is displayed.
+     *
+     * @return {@code true} if this task is done, otherwise {@code false}.
+     */
+    public boolean isDone() {
+        return isDone;
+    }
+
+    /**
+     * Returns the text describing this task.
+     *
+     * @return the description this task was created with.
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
      * Marks this task as done.
      */
     public void markAsDone() {
