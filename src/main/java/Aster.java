@@ -1,4 +1,5 @@
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Scanner;
 
@@ -12,10 +13,15 @@ import java.util.Scanner;
  * task, and {@code delete <number>} removes one task. Anything else is refused with
  * an explanation: unrecognised commands, missing descriptions, missing, repeated or
  * out-of-order {@code /by}, {@code /from} and {@code /to} parts, and unusable task
- * numbers. A refused command leaves the task list unchanged. Tasks are held in
- * memory only; nothing is saved to disk.
+ * numbers. A refused command leaves the task list unchanged. The tasks are saved
+ * whenever the list changes, and read back when Aster next starts, so the list
+ * survives leaving and returning.
  */
 public class Aster {
+    // Kept relative, and built from its parts rather than written with a separator, so
+    // it means the same thing on every operating system.
+    private static final Path DATA_FILE = Paths.get("data", "aster.txt");
+
     // Markers are matched as whole words, so wording inside a description cannot be
     // mistaken for one of them.
     private static final String BY_MARKER = "/by";
@@ -27,19 +33,31 @@ public class Aster {
     private static final String EVENT_USAGE = "Try: event project meeting /from Mon 2pm /to 4pm";
 
     /**
-     * Greets the user, then reads commands from standard input until {@code bye} or
-     * the end of input. Each command is handled in turn, and any command Aster cannot
-     * carry out is reported without changing the task list.
+     * Reads any saved tasks, greets the user, then reads commands from standard input
+     * until {@code bye} or the end of input. Each command is handled in turn, and any
+     * command Aster cannot carry out is reported without changing the task list.
      *
-     * @param args command line arguments; not used
+     * <p>If the saved tasks cannot be read, Aster explains why and stops before taking
+     * any command, so that a file which may still be worth keeping is not written over.
+     *
+     * @param args command line arguments; not used.
      */
     public static void main(String[] args) {
         final String divider = "____________________________________________________________";
 
-        // An ArrayList grows as needed, so no capacity is assumed and the number of
-        // tasks is always tasks.size() rather than a separately tracked count. It
+        Storage storage = new Storage(DATA_FILE);
+        // The task list grows as needed, so no capacity is assumed and its current
+        // size is always tasks.size() rather than a separately tracked count. It
         // holds every task type, since each subclass is also a Task.
-        List<Task> tasks = new ArrayList<>();
+        List<Task> tasks;
+        try {
+            tasks = storage.load();
+        } catch (AsterException e) {
+            System.out.println(divider);
+            System.out.println(e.getMessage());
+            System.out.println(divider);
+            return;
+        }
 
         System.out.println(divider);
         System.out.println("Hello! I'm Aster.");
@@ -57,9 +75,13 @@ public class Aster {
             }
             System.out.println(divider);
             // Every failure surfaces here, so nothing else prints errors, and the list
-            // keeps its previous contents whenever a command is refused.
+            // keeps its previous contents whenever a command is refused. Saving here
+            // rather than inside each command is what keeps commands that only read,
+            // and commands that are refused, from writing to the file at all.
             try {
-                handleCommand(command, tasks);
+                if (handleCommand(command, tasks)) {
+                    storage.save(tasks);
+                }
             } catch (AsterException e) {
                 System.out.println(e.getMessage());
             }
@@ -77,11 +99,14 @@ public class Aster {
      * <p>Every check happens before the task list is touched, so a command that throws
      * leaves the list exactly as it was.
      *
-     * @param command the trimmed command line entered by the user
-     * @param tasks the task list, modified in place by commands that add or remove
-     * @throws AsterException if the command cannot be understood or carried out
+     * @param command the trimmed command line entered by the user.
+     * @param tasks the task list, modified in place by every command that adds,
+     *     removes, or changes the done status of a task.
+     * @return {@code true} if the command changed the task list, so that the caller
+     *     knows the tasks need saving; {@code false} if it only read the list.
+     * @throws AsterException if the command cannot be understood or carried out.
      */
-    private static void handleCommand(String command, List<Task> tasks) throws AsterException {
+    private static boolean handleCommand(String command, List<Task> tasks) throws AsterException {
         // The command is already trimmed, so this separates the keyword from the rest.
         String[] parts = command.split("\\s+", 2);
         String keyword = parts[0];
@@ -95,7 +120,7 @@ public class Aster {
 
         // Listing case null alongside the constants makes this switch exhaustive, so
         // the compiler reports any command added to Command but not handled here.
-        switch (Command.fromKeyword(keyword)) {
+        return switch (Command.fromKeyword(keyword)) {
             case null -> throw new AsterException("I don't recognise \"" + keyword + "\". I "
                     + "understand: " + Command.keywordList() + ".");
             case BYE -> throw new AsterException("To leave, type bye on its own, with "
@@ -103,18 +128,22 @@ public class Aster {
             case LIST -> {
                 requireNoArguments(arguments, Command.LIST);
                 printList(tasks);
+                // Reading the list leaves it as it was, so there is nothing to save.
+                yield false;
             }
             case MARK -> {
                 Task task = tasks.get(parseTaskIndex(arguments, tasks, Command.MARK));
                 task.markAsDone();
                 System.out.println("Nice! I've marked this task as done:");
                 System.out.println("  " + task);
+                yield true;
             }
             case UNMARK -> {
                 Task task = tasks.get(parseTaskIndex(arguments, tasks, Command.UNMARK));
                 task.markAsNotDone();
                 System.out.println("Alright, I've marked this task as not done yet:");
                 System.out.println("  " + task);
+                yield true;
             }
             case DELETE -> {
                 // The number is validated before anything is removed, so a refused
@@ -124,15 +153,23 @@ public class Aster {
                 System.out.println("Noted. I've removed this task:");
                 System.out.println("  " + task);
                 printCount(tasks);
+                yield true;
             }
             case TODO -> {
                 String description = requireNonEmpty(arguments,
                         "A todo needs a description. " + TODO_USAGE);
                 addTask(tasks, new Todo(description));
+                yield true;
             }
-            case DEADLINE -> addDeadline(tasks, arguments);
-            case EVENT -> addEvent(tasks, arguments);
-        }
+            case DEADLINE -> {
+                addDeadline(tasks, arguments);
+                yield true;
+            }
+            case EVENT -> {
+                addEvent(tasks, arguments);
+                yield true;
+            }
+        };
     }
 
     /**
