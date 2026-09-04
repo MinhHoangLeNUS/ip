@@ -49,7 +49,7 @@ abstract class IndexedCommand extends Command {
      * @throws AsterException if the number is missing, not a number, or outside the list.
      */
     protected int resolveIndex(TaskList tasks) throws AsterException {
-        String keyword = type.keyword();
+        String keyword = type.getKeyword();
         int taskCount = tasks.size();
         if (arguments.isEmpty()) {
             throw new AsterException("Tell me which task to " + keyword + ". Try: " + keyword

@@ -6,7 +6,7 @@ package aster.command;
  * <p>The keywords are a closed set, so keeping them here means the switch that carries
  * out a command, the messages that name a command, and the list of commands shown when
  * one is not recognized all read from this single declaration and cannot drift apart.
- * The declaration order is the order {@link #keywordList()} presents them in.
+ * The declaration order is the order {@link #getKeywordList()} presents them in.
  */
 public enum CommandType {
     /**
@@ -53,7 +53,7 @@ public enum CommandType {
      *
      * @return the keyword, for example {@code "mark"}.
      */
-    public String keyword() {
+    public String getKeyword() {
         return keyword;
     }
 
@@ -85,7 +85,7 @@ public enum CommandType {
      *
      * @return the keywords separated by commas, with {@code and} before the last.
      */
-    public static String keywordList() {
+    public static String getKeywordList() {
         CommandType[] commands = values();
         StringBuilder list = new StringBuilder();
         for (int i = 0; i < commands.length; i++) {
