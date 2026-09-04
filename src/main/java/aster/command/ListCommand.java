@@ -12,6 +12,12 @@ import aster.ui.Ui;
  */
 public class ListCommand extends Command {
     /**
+     * Creates a command that shows the whole task list.
+     */
+    public ListCommand() {
+    }
+
+    /**
      * Shows the tasks in the order they were added.
      *
      * @param tasks the task list to show.

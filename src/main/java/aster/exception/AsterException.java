@@ -17,7 +17,7 @@ public class AsterException extends Exception {
      * Creates an exception carrying a message that says what went wrong and how to
      * correct it.
      *
-     * @param message the user-facing explanation, printed exactly as given
+     * @param message the user-facing explanation, printed exactly as given.
      */
     public AsterException(String message) {
         super(message);

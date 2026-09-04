@@ -14,7 +14,7 @@ public class Task {
     /**
      * Creates a task with the given description, initially not done.
      *
-     * @param description text describing the task
+     * @param description text describing the task.
      */
     public Task(String description) {
         this.description = description;
@@ -24,7 +24,7 @@ public class Task {
     /**
      * Returns the icon shown inside the status brackets.
      *
-     * @return {@code "X"} if this task is done, otherwise a single space
+     * @return {@code "X"} if this task is done, otherwise a single space.
      */
     public String getStatusIcon() {
         return isDone ? "X" : " ";
@@ -69,7 +69,7 @@ public class Task {
      * Returns this task as its status icon followed by its description,
      * for example {@code [X] read book}.
      *
-     * @return the display form of this task
+     * @return the display form of this task.
      */
     @Override
     public String toString() {

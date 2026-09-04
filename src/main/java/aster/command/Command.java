@@ -22,6 +22,12 @@ import aster.ui.Ui;
  */
 public abstract class Command {
     /**
+     * Creates a command; each subclass adds whatever that command needs to run.
+     */
+    protected Command() {
+    }
+
+    /**
      * Carries out this command.
      *
      * @param tasks the task list to read or change.

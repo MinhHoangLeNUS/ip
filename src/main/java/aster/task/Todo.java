@@ -10,7 +10,7 @@ public class Todo extends Task {
     /**
      * Creates a todo with the given description, initially not done.
      *
-     * @param description text describing the task
+     * @param description text describing the task.
      */
     public Todo(String description) {
         super(description);
@@ -20,7 +20,7 @@ public class Todo extends Task {
      * Returns this todo as its type marker followed by the inherited status
      * and description, for example {@code [T][X] read book}.
      *
-     * @return the display form of this todo
+     * @return the display form of this todo.
      */
     @Override
     public String toString() {
