@@ -1,5 +1,13 @@
+package aster;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import aster.exception.AsterException;
+import aster.parser.Parser;
+import aster.storage.Storage;
+import aster.task.TaskList;
+import aster.ui.Ui;
 
 /**
  * Entry point for the Aster chatbot.
@@ -16,7 +24,7 @@ import java.nio.file.Paths;
  * back when Aster next starts, so the list survives leaving and returning.
  *
  * <p>This class holds the conversation together and nothing else: the {@link Ui} does
- * the talking, the {@link Parser} works out what was asked, a {@link Command} carries
+ * the talking, the {@link Parser} works out what was asked, a {@code Command} carries
  * it out on the {@link TaskList}, and the {@link Storage} keeps the tasks between
  * visits.
  */

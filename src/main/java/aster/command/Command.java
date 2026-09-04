@@ -1,7 +1,14 @@
+package aster.command;
+
+import aster.exception.AsterException;
+import aster.storage.Storage;
+import aster.task.TaskList;
+import aster.ui.Ui;
+
 /**
  * One thing the user has asked Aster to do.
  *
- * <p>A command is built by the {@link Parser} and later carried out by
+ * <p>A command is built by the {@code Parser} and later carried out by
  * {@link #execute}. What the parser can check depends on the command: for a todo,
  * deadline, event or list it has already checked the wording, while a command that
  * names a task by number carries that text unchecked and settles it when it runs.

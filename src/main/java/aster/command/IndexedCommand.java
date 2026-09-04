@@ -1,3 +1,8 @@
+package aster.command;
+
+import aster.exception.AsterException;
+import aster.task.TaskList;
+
 /**
  * A command that names one task by its number, such as {@code mark 2}.
  *
@@ -18,7 +23,7 @@
  * list that their list is empty is more useful than telling them their word is not a
  * number, and keeping the four checks together is what keeps that order.
  */
-public abstract class IndexedCommand extends Command {
+abstract class IndexedCommand extends Command {
     private final CommandType type;
     private final String arguments;
 

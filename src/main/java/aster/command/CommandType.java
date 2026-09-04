@@ -1,3 +1,5 @@
+package aster.command;
+
 /**
  * The commands Aster understands, one constant per keyword the user can type.
  *

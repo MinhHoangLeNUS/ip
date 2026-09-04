@@ -1,3 +1,5 @@
+package aster.task;
+
 /**
  * A task tracked by Aster, consisting of a description and a done status.
  *
