@@ -62,7 +62,7 @@ public final class Parser {
      * @return {@code true} if the user asked to leave.
      */
     public static boolean isExit(String fullCommand) {
-        return fullCommand.equals(CommandType.BYE.keyword());
+        return fullCommand.equals(CommandType.BYE.getKeyword());
     }
 
     /**
@@ -93,8 +93,8 @@ public final class Parser {
         // Listing case null alongside the constants makes this switch exhaustive, so
         // the compiler reports any command added to CommandType but not handled here.
         return switch (CommandType.fromKeyword(keyword)) {
-            case null -> throw new AsterException("I don't recognise \"" + keyword + "\". I "
-                    + "understand: " + CommandType.keywordList() + ".");
+            case null -> throw new AsterException("I don't recognize \"" + keyword + "\". I "
+                    + "understand: " + CommandType.getKeywordList() + ".");
             case BYE -> throw new AsterException("To leave, type bye on its own, with "
                     + "nothing after it.");
             case LIST -> {
@@ -175,7 +175,7 @@ public final class Parser {
     private static void requireNoArguments(String arguments, CommandType command)
             throws AsterException {
         if (!arguments.isEmpty()) {
-            String keyword = command.keyword();
+            String keyword = command.getKeyword();
             throw new AsterException("The " + keyword + " command takes nothing after it. Type "
                     + keyword + " on its own.");
         }
@@ -278,10 +278,10 @@ public final class Parser {
     private static int indexOfMarker(String text, String marker, int fromIndex) {
         int at = text.indexOf(marker, fromIndex);
         while (at >= 0) {
-            boolean startsWord = at == 0 || Character.isWhitespace(text.charAt(at - 1));
+            boolean isWordStart = at == 0 || Character.isWhitespace(text.charAt(at - 1));
             int after = at + marker.length();
-            boolean endsWord = after == text.length() || Character.isWhitespace(text.charAt(after));
-            if (startsWord && endsWord) {
+            boolean isWordEnd = after == text.length() || Character.isWhitespace(text.charAt(after));
+            if (isWordStart && isWordEnd) {
                 return at;
             }
             at = text.indexOf(marker, at + 1);

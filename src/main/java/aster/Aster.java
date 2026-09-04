@@ -17,7 +17,7 @@ import aster.ui.Ui;
  * {@code list} shows the stored tasks with their type and done status,
  * {@code mark <number>} and {@code unmark <number>} change the done status of one
  * task, and {@code delete <number>} removes one task. Anything else is refused with
- * an explanation: unrecognised commands, missing descriptions, missing, repeated or
+ * an explanation: unrecognized commands, missing descriptions, missing, repeated or
  * out-of-order {@code /by}, {@code /from} and {@code /to} parts, dates not written
  * as {@code yyyy-MM-dd}, and unusable task numbers. A refused command leaves the
  * task list unchanged. The tasks are saved whenever the list changes, and read
