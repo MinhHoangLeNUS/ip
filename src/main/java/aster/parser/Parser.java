@@ -93,7 +93,7 @@ public final class Parser {
         // Listing case null alongside the constants makes this switch exhaustive, so
         // the compiler reports any command added to CommandType but not handled here.
         return switch (CommandType.fromKeyword(keyword)) {
-            case null -> throw new AsterException("I don't recognise \"" + keyword + "\". I "
+            case null -> throw new AsterException("I don't recognize \"" + keyword + "\". I "
                     + "understand: " + CommandType.keywordList() + ".");
             case BYE -> throw new AsterException("To leave, type bye on its own, with "
                     + "nothing after it.");
