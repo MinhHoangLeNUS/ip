@@ -26,6 +26,10 @@ public enum CommandType {
      */
     LIST("list"),
     /**
+     * Shows the tasks whose description contains a keyword.
+     */
+    FIND("find"),
+    /**
      * Marks one task as done.
      */
     MARK("mark"),
@@ -78,7 +82,7 @@ public enum CommandType {
 
     /**
      * Returns every keyword in declaration order as a phrase to show the user, for
-     * example {@code todo, deadline, event, list, mark, unmark, delete and bye}.
+     * example {@code todo, deadline, event, list, find, mark, unmark, delete and bye}.
      *
      * <p>Building the phrase here rather than writing it out means it stays correct if
      * a command is ever added, removed or renamed.
