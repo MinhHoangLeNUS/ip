@@ -1,7 +1,15 @@
+package aster.command;
+
+import aster.exception.AsterException;
+import aster.storage.Storage;
+import aster.task.Task;
+import aster.task.TaskList;
+import aster.ui.Ui;
+
 /**
  * Adds one task to the list.
  *
- * <p>The task itself is built by the {@link Parser}, which is what lets one command
+ * <p>The task itself is built by the {@code Parser}, which is what lets one command
  * cover todos, deadlines and events without repeating anything: by the time this
  * command exists, the difference between them is already settled.
  */

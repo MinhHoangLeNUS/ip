@@ -1,4 +1,19 @@
+package aster.parser;
+
 import java.time.LocalDate;
+
+import aster.command.AddCommand;
+import aster.command.Command;
+import aster.command.CommandType;
+import aster.command.DeleteCommand;
+import aster.command.ListCommand;
+import aster.command.MarkCommand;
+import aster.command.UnmarkCommand;
+import aster.exception.AsterException;
+import aster.task.Deadline;
+import aster.task.Event;
+import aster.task.TaskDates;
+import aster.task.Todo;
 
 /**
  * Makes sense of what the user typed.
@@ -9,7 +24,7 @@ import java.time.LocalDate;
  *
  * <p>{@code mark}, {@code unmark} and {@code delete} are a deliberate exception.
  * Nothing about their argument is checked here, not even whether one was given or
- * whether it is a number. Those checks run together in {@link IndexedCommand} when the
+ * whether it is a number. Those checks run together in {@code IndexedCommand} when the
  * command is carried out, because one of them depends on how many tasks there are and
  * it has to be asked before the others; see that class for why.
  *
@@ -54,7 +69,7 @@ public final class Parser {
      * Returns the command the given line asks for.
      *
      * <p>A command that is returned has a keyword Aster knows. For most commands its
-     * wording has also been checked, but a returned {@link IndexedCommand} carries the
+     * wording has also been checked, but a returned {@code IndexedCommand} carries the
      * argument exactly as typed and has had nothing about it checked yet, so it may
      * still turn out to name no task once it runs.
      *

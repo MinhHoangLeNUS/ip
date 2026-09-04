@@ -1,3 +1,5 @@
+package aster.task;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -57,7 +59,7 @@ public final class TaskDates {
      * @param date the date to show.
      * @return the date written as {@code MMM dd yyyy}, for example {@code Dec 02 2019}.
      */
-    public static String format(LocalDate date) {
+    static String format(LocalDate date) {
         return date.format(DISPLAY_FORMAT);
     }
 

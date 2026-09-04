@@ -1,3 +1,11 @@
+package aster.command;
+
+import aster.exception.AsterException;
+import aster.storage.Storage;
+import aster.task.Task;
+import aster.task.TaskList;
+import aster.ui.Ui;
+
 /**
  * Removes one task from the list.
  */

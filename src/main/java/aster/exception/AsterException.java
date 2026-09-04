@@ -1,8 +1,10 @@
+package aster.exception;
+
 /**
  * An error Aster can explain to the user, such as an incomplete command.
  *
  * <p>It is checked rather than unchecked so the compiler forces every command to
- * be handled at the one place in {@link Aster} that reports errors. Its message is
+ * be handled at the one place in {@code Aster} that reports errors. Its message is
  * written for the user, so it can be printed exactly as it is.
  */
 public class AsterException extends Exception {

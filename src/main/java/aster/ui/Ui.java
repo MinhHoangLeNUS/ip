@@ -1,5 +1,9 @@
+package aster.ui;
+
 import java.util.List;
 import java.util.Scanner;
+
+import aster.task.Task;
 
 /**
  * Handles everything the user reads and types.

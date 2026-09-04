@@ -1,18 +1,26 @@
+package aster.command;
+
+import aster.exception.AsterException;
+import aster.storage.Storage;
+import aster.task.Task;
+import aster.task.TaskList;
+import aster.ui.Ui;
+
 /**
- * Marks one task as not done.
+ * Marks one task as done.
  */
-public class UnmarkCommand extends IndexedCommand {
+public class MarkCommand extends IndexedCommand {
     /**
-     * Creates a command that unmarks the task the given text names.
+     * Creates a command that marks the task the given text names.
      *
      * @param arguments everything the user typed after the keyword.
      */
-    public UnmarkCommand(String arguments) {
-        super(CommandType.UNMARK, arguments);
+    public MarkCommand(String arguments) {
+        super(CommandType.MARK, arguments);
     }
 
     /**
-     * Marks the named task as not done, reports it, and saves the list.
+     * Marks the named task as done, reports it, and saves the list.
      *
      * @param tasks the task list holding the task.
      * @param ui the user interface to report through.
@@ -23,8 +31,8 @@ public class UnmarkCommand extends IndexedCommand {
     @Override
     public void execute(TaskList tasks, Ui ui, Storage storage) throws AsterException {
         Task task = tasks.get(resolveIndex(tasks));
-        task.markAsNotDone();
-        ui.showUnmarked(task);
+        task.markAsDone();
+        ui.showMarked(task);
         storage.save(tasks.asList());
     }
 }
