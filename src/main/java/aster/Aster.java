@@ -15,6 +15,7 @@ import aster.ui.Ui;
  * <p>Aster greets the user and reads commands until {@code bye}. The commands
  * {@code todo}, {@code deadline} and {@code event} add a task of the matching type,
  * {@code list} shows the stored tasks with their type and done status,
+ * {@code find <keyword>} shows those whose description contains the keyword,
  * {@code mark <number>} and {@code unmark <number>} change the done status of one
  * task, and {@code delete <number>} removes one task. Anything else is refused with
  * an explanation: unrecognized commands, missing descriptions, missing, repeated or

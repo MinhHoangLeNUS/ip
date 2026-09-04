@@ -6,6 +6,7 @@ import aster.command.AddCommand;
 import aster.command.Command;
 import aster.command.CommandType;
 import aster.command.DeleteCommand;
+import aster.command.FindCommand;
 import aster.command.ListCommand;
 import aster.command.MarkCommand;
 import aster.command.UnmarkCommand;
@@ -19,8 +20,9 @@ import aster.task.Todo;
  * Makes sense of what the user typed.
  *
  * <p>This class works out which command was meant, and for {@code todo},
- * {@code deadline}, {@code event} and {@code list} it also checks the parts that
- * command needs: descriptions, markers, and whether the dates named are real dates.
+ * {@code deadline}, {@code event}, {@code list} and {@code find} it also checks the
+ * parts that command needs: descriptions, keywords, markers, and whether the dates
+ * named are real dates.
  *
  * <p>{@code mark}, {@code unmark} and {@code delete} are a deliberate exception.
  * Nothing about their argument is checked here, not even whether one was given or
@@ -42,6 +44,7 @@ public final class Parser {
     private static final String DEADLINE_USAGE = "Try: deadline return book /by 2019-12-02";
     private static final String EVENT_USAGE = "Try: event project meeting /from 2019-12-02 "
             + "/to 2019-12-03";
+    private static final String FIND_USAGE = "Try: find book";
     private static final String DATE_USAGE = "Dates go in the form yyyy-MM-dd, for example "
             + "2019-12-02.";
 
@@ -101,6 +104,8 @@ public final class Parser {
                 requireNoArguments(arguments, CommandType.LIST);
                 yield new ListCommand();
             }
+            case FIND -> new FindCommand(requireNonEmpty(arguments,
+                    "Tell me what to look for. " + FIND_USAGE));
             case MARK -> new MarkCommand(arguments);
             case UNMARK -> new UnmarkCommand(arguments);
             case DELETE -> new DeleteCommand(arguments);

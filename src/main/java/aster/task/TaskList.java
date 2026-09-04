@@ -3,6 +3,7 @@ package aster.task;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Holds the tasks Aster is keeping track of.
@@ -85,5 +86,31 @@ public class TaskList {
      */
     public List<Task> asList() {
         return Collections.unmodifiableList(tasks);
+    }
+
+    /**
+     * Returns the tasks whose description contains the given keyword.
+     *
+     * <p>Only the description is searched, so the type marker, the done status and
+     * any date shown beside a task cannot be matched. Letter case is ignored, and is
+     * folded in English so that a computer configured for another language finds the
+     * same tasks. The keyword stands for itself, so punctuation in it is matched
+     * literally rather than read as a pattern.
+     *
+     * <p>The matches keep the order they are held in, each matching task appears
+     * once, and searching leaves the list exactly as it was.
+     *
+     * @param keyword the text to look for in each description.
+     * @return a view of the matching tasks that cannot be changed through it.
+     */
+    public List<Task> find(String keyword) {
+        String wanted = keyword.trim().toLowerCase(Locale.ENGLISH);
+        List<Task> matches = new ArrayList<>();
+        for (Task task : tasks) {
+            if (task.getDescription().toLowerCase(Locale.ENGLISH).contains(wanted)) {
+                matches.add(task);
+            }
+        }
+        return Collections.unmodifiableList(matches);
     }
 }

@@ -154,6 +154,25 @@ public class Ui {
     }
 
     /**
+     * Shows the tasks that matched a search, or says that none did.
+     *
+     * <p>The heading names what is being shown, so a search that happens to match
+     * every task cannot be mistaken for the whole list. The matches are numbered
+     * from one across themselves, so these numbers are not the ones {@code mark},
+     * {@code unmark} and {@code delete} take.
+     *
+     * @param tasks the matching tasks, in the order they are held.
+     */
+    public void showFound(List<Task> tasks) {
+        if (tasks.isEmpty()) {
+            System.out.println("No tasks match that keyword.");
+            return;
+        }
+        System.out.println("Here are the matching tasks in your list:");
+        showTasks(tasks);
+    }
+
+    /**
      * Prints how many tasks the list holds, as shown after adding or removing one.
      *
      * @param taskCount the number of tasks in the list.
