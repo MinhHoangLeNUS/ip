@@ -44,6 +44,11 @@ public enum CommandType {
 
     private final String keyword;
 
+    /**
+     * Creates a command identified by the keyword the user types.
+     *
+     * @param keyword the word the user types to give this command.
+     */
     CommandType(String keyword) {
         this.keyword = keyword;
     }
