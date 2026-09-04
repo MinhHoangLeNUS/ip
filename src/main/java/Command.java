@@ -1,97 +1,27 @@
 /**
- * The commands Aster understands, one constant per keyword the user can type.
+ * One thing the user has asked Aster to do.
  *
- * <p>The keywords are a closed set, so keeping them here means the switch that carries
- * out a command, the messages that name a command, and the list of commands shown when
- * one is not recognised all read from this single declaration and cannot drift apart.
- * The declaration order is the order {@link #keywordList()} presents them in.
+ * <p>A command is built by the {@link Parser} and later carried out by
+ * {@link #execute}. What the parser can check depends on the command: for a todo,
+ * deadline, event or list it has already checked the wording, while a command that
+ * names a task by number carries that text unchecked and settles it when it runs.
+ * See {@link IndexedCommand} for why those checks are held back.
+ *
+ * <p>A command that changes the task list asks for it to be saved after the change has
+ * been made and reported. Checks that refuse a command run before anything is changed,
+ * so a refused command neither changes the list nor writes to the file. Saving itself
+ * can still fail afterwards; when it does, the change stays in this session only and
+ * the user is told so.
  */
-public enum Command {
+public abstract class Command {
     /**
-     * Adds a task with no date attached.
-     */
-    TODO("todo"),
-    /**
-     * Adds a task that must be done by a stated date or time.
-     */
-    DEADLINE("deadline"),
-    /**
-     * Adds a task that spans a stated start and end point.
-     */
-    EVENT("event"),
-    /**
-     * Shows the stored tasks.
-     */
-    LIST("list"),
-    /**
-     * Marks one task as done.
-     */
-    MARK("mark"),
-    /**
-     * Marks one task as not done.
-     */
-    UNMARK("unmark"),
-    /**
-     * Removes one task.
-     */
-    DELETE("delete"),
-    /**
-     * Ends the conversation.
-     */
-    BYE("bye");
-
-    private final String keyword;
-
-    Command(String keyword) {
-        this.keyword = keyword;
-    }
-
-    /**
-     * Returns the keyword the user types to give this command.
+     * Carries out this command.
      *
-     * @return the keyword, for example {@code "mark"}
+     * @param tasks the task list to read or change.
+     * @param ui the user interface to report the outcome through.
+     * @param storage the store to write the tasks to, for commands that change them.
+     * @throws AsterException if the command cannot be carried out on the list as it
+     *     stands, or if the changed list cannot be saved.
      */
-    public String keyword() {
-        return keyword;
-    }
-
-    /**
-     * Returns the command a keyword names.
-     *
-     * <p>This is the one place where a word the user typed becomes a command, so the
-     * match is made here and nowhere else. The match is exact: no trimming, and no
-     * difference in letter case is allowed.
-     *
-     * @param keyword the first word of the command line
-     * @return the command using that keyword, or {@code null} if no command uses it
-     */
-    public static Command fromKeyword(String keyword) {
-        for (Command command : values()) {
-            if (command.keyword.equals(keyword)) {
-                return command;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Returns every keyword in declaration order as a phrase to show the user, for
-     * example {@code todo, deadline, event, list, mark, unmark, delete and bye}.
-     *
-     * <p>Building the phrase here rather than writing it out means it stays correct if
-     * a command is ever added, removed or renamed.
-     *
-     * @return the keywords separated by commas, with {@code and} before the last
-     */
-    public static String keywordList() {
-        Command[] commands = values();
-        StringBuilder list = new StringBuilder();
-        for (int i = 0; i < commands.length; i++) {
-            if (i > 0) {
-                list.append(i == commands.length - 1 ? " and " : ", ");
-            }
-            list.append(commands[i].keyword);
-        }
-        return list.toString();
-    }
+    public abstract void execute(TaskList tasks, Ui ui, Storage storage) throws AsterException;
 }
