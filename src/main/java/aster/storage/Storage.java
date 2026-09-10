@@ -100,7 +100,7 @@ public class Storage {
         try {
             lines = Files.readAllLines(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new AsterException(unreadableFileMessage());
+            throw new AsterException(buildUnreadableFileMessage());
         }
 
         List<Task> tasks = new ArrayList<>();
@@ -137,7 +137,7 @@ public class Storage {
             writeAll(tasks, temporary);
             replace(temporary, file);
         } catch (IOException e) {
-            throw new AsterException(unwritableFileMessage());
+            throw new AsterException(buildUnwritableFileMessage());
         } finally {
             // Nothing is left behind whether the save succeeded or failed.
             deleteQuietly(temporary);
@@ -184,7 +184,7 @@ public class Storage {
             case Event event -> join(EVENT_TAG, done, description,
                     escape(TaskDates.toStorage(event.getFrom())),
                     escape(TaskDates.toStorage(event.getTo())));
-            default -> throw new AsterException(unknownTypeMessage());
+            default -> throw new AsterException(buildUnknownTypeMessage());
         };
     }
 
@@ -202,7 +202,7 @@ public class Storage {
     private Task decode(String line) throws AsterException {
         List<String> fields = splitFields(line);
         if (fields.size() < MINIMUM_FIELDS) {
-            throw new AsterException(unreadableFileMessage());
+            throw new AsterException(buildUnreadableFileMessage());
         }
 
         String description = fields.get(DESCRIPTION_INDEX);
@@ -222,7 +222,7 @@ public class Storage {
                         requireDate(fields.get(FIRST_DETAIL_INDEX)),
                         requireDate(fields.get(SECOND_DETAIL_INDEX)));
             }
-            default -> throw new AsterException(unreadableFileMessage());
+            default -> throw new AsterException(buildUnreadableFileMessage());
         };
 
         // Every task is created not done, so only a stored "done" needs acting on.
@@ -251,7 +251,7 @@ public class Storage {
                 // Nothing this program writes ends in a lone backslash, so a line that
                 // does has been edited by hand into something that cannot be read.
                 if (i + 1 >= line.length()) {
-                    throw new AsterException(unreadableFileMessage());
+                    throw new AsterException(buildUnreadableFileMessage());
                 }
                 field.append(line.charAt(i + 1));
                 i++;
@@ -308,7 +308,7 @@ public class Storage {
         if (NOT_DONE.equals(flag)) {
             return false;
         }
-        throw new AsterException(unreadableFileMessage());
+        throw new AsterException(buildUnreadableFileMessage());
     }
 
     /**
@@ -320,7 +320,7 @@ public class Storage {
      */
     private void requireFieldCount(List<String> fields, int expected) throws AsterException {
         if (fields.size() != expected) {
-            throw new AsterException(unreadableFileMessage());
+            throw new AsterException(buildUnreadableFileMessage());
         }
     }
 
@@ -333,7 +333,7 @@ public class Storage {
      */
     private String requireFilled(String field) throws AsterException {
         if (field.isEmpty()) {
-            throw new AsterException(unreadableFileMessage());
+            throw new AsterException(buildUnreadableFileMessage());
         }
         return field;
     }
@@ -352,7 +352,7 @@ public class Storage {
     private LocalDate requireDate(String field) throws AsterException {
         LocalDate date = TaskDates.parseOrNull(field);
         if (date == null) {
-            throw new AsterException(unreadableFileMessage());
+            throw new AsterException(buildUnreadableFileMessage());
         }
         return date;
     }
@@ -400,7 +400,7 @@ public class Storage {
      *
      * @return the explanation to show the user.
      */
-    private String unreadableFileMessage() {
+    private String buildUnreadableFileMessage() {
         return "I couldn't read your saved tasks from " + file + ", so I've stopped without "
                 + "changing anything. Please check or move that file, then start me again.";
     }
@@ -410,7 +410,7 @@ public class Storage {
      *
      * @return the explanation to show the user.
      */
-    private String unwritableFileMessage() {
+    private String buildUnwritableFileMessage() {
         return "I couldn't save your tasks. Your latest changes may not be available next time.";
     }
 
@@ -419,7 +419,7 @@ public class Storage {
      *
      * @return the explanation to show the user.
      */
-    private String unknownTypeMessage() {
+    private String buildUnknownTypeMessage() {
         return "I don't know how to save one of your tasks, so nothing was written.";
     }
 }

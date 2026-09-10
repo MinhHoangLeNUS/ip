@@ -67,7 +67,7 @@ abstract class IndexedCommand extends Command {
                     + keyword + " 2");
         }
         if (number < 1 || number > taskCount) {
-            throw new AsterException("You have " + taskCount + " " + taskNoun(taskCount)
+            throw new AsterException("You have " + taskCount + " " + getTaskNoun(taskCount)
                     + ", so " + number + " is out of range. Pick a number from 1 to "
                     + taskCount + ".");
         }
@@ -83,7 +83,7 @@ abstract class IndexedCommand extends Command {
      * @param count the number of tasks.
      * @return {@code "task"} if the count is one, otherwise {@code "tasks"}.
      */
-    private static String taskNoun(int count) {
+    private static String getTaskNoun(int count) {
         return count == 1 ? "task" : "tasks";
     }
 }

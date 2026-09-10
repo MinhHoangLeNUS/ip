@@ -95,9 +95,9 @@ public final class Parser {
 
         // Listing case null alongside the constants makes this switch exhaustive, so
         // the compiler reports any command added to CommandType but not handled here.
-        return switch (CommandType.fromKeyword(keyword)) {
+        return switch (CommandType.findByKeyword(keyword)) {
             case null -> throw new AsterException("I don't recognize \"" + keyword + "\". I "
-                    + "understand: " + CommandType.getKeywordList() + ".");
+                    + "understand: " + CommandType.formatKeywordList() + ".");
             case BYE -> throw new AsterException("To leave, type bye on its own, with "
                     + "nothing after it.");
             case LIST -> {
@@ -136,7 +136,7 @@ public final class Parser {
      */
     private static Deadline parseDeadline(String arguments) throws AsterException {
         requireExactlyOne(arguments, BY_MARKER, "deadline", DEADLINE_USAGE);
-        int byAt = indexOfMarker(arguments, BY_MARKER, 0);
+        int byAt = findMarkerIndex(arguments, BY_MARKER, 0);
         String description = requireNonEmpty(arguments.substring(0, byAt),
                 "A deadline needs a description before /by. " + DEADLINE_USAGE);
         String by = requireNonEmpty(arguments.substring(byAt + BY_MARKER.length()),
@@ -156,8 +156,8 @@ public final class Parser {
     private static Event parseEvent(String arguments) throws AsterException {
         requireExactlyOne(arguments, FROM_MARKER, "event", EVENT_USAGE);
         requireExactlyOne(arguments, TO_MARKER, "event", EVENT_USAGE);
-        int fromAt = indexOfMarker(arguments, FROM_MARKER, 0);
-        int toAt = indexOfMarker(arguments, TO_MARKER, 0);
+        int fromAt = findMarkerIndex(arguments, FROM_MARKER, 0);
+        int toAt = findMarkerIndex(arguments, TO_MARKER, 0);
         if (toAt < fromAt) {
             throw new AsterException("An event needs /from before /to. " + EVENT_USAGE);
         }
@@ -235,11 +235,11 @@ public final class Parser {
             String usage) throws AsterException {
         int count = countMarkers(arguments, marker);
         if (count == 0) {
-            throw new AsterException("A" + article(taskType) + taskType + " needs a " + marker
+            throw new AsterException("A" + getArticleSuffix(taskType) + taskType + " needs a " + marker
                     + " part. " + usage);
         }
         if (count > 1) {
-            throw new AsterException("A" + article(taskType) + taskType + " can have only one "
+            throw new AsterException("A" + getArticleSuffix(taskType) + taskType + " can have only one "
                     + marker + " part. " + usage);
         }
     }
@@ -250,7 +250,7 @@ public final class Parser {
      * @param word the word that follows the article.
      * @return {@code "n "} before a vowel, otherwise {@code " "}.
      */
-    private static String article(String word) {
+    private static String getArticleSuffix(String word) {
         return "aeiou".indexOf(word.charAt(0)) >= 0 ? "n " : " ";
     }
 
@@ -263,10 +263,10 @@ public final class Parser {
      */
     private static int countMarkers(String text, String marker) {
         int count = 0;
-        int at = indexOfMarker(text, marker, 0);
+        int at = findMarkerIndex(text, marker, 0);
         while (at >= 0) {
             count++;
-            at = indexOfMarker(text, marker, at + marker.length());
+            at = findMarkerIndex(text, marker, at + marker.length());
         }
         return count;
     }
@@ -280,7 +280,7 @@ public final class Parser {
      * @param fromIndex the position to start searching from.
      * @return the index of the marker, or {@code -1} if it does not occur.
      */
-    private static int indexOfMarker(String text, String marker, int fromIndex) {
+    private static int findMarkerIndex(String text, String marker, int fromIndex) {
         int at = text.indexOf(marker, fromIndex);
         while (at >= 0) {
             boolean isWordStart = at == 0 || Character.isWhitespace(text.charAt(at - 1));

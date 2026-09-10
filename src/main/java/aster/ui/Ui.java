@@ -178,7 +178,7 @@ public class Ui {
      * @param taskCount the number of tasks in the list.
      */
     private void showCount(int taskCount) {
-        System.out.println("Now you have " + taskCount + " " + taskNoun(taskCount)
+        System.out.println("Now you have " + taskCount + " " + getTaskNoun(taskCount)
                 + " in the list.");
     }
 
@@ -191,7 +191,7 @@ public class Ui {
      * @param count the number of tasks.
      * @return {@code "task"} if the count is one, otherwise {@code "tasks"}.
      */
-    private static String taskNoun(int count) {
+    private static String getTaskNoun(int count) {
         return count == 1 ? "task" : "tasks";
     }
 }
