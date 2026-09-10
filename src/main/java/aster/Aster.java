@@ -2,6 +2,8 @@ package aster;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 import aster.exception.AsterException;
 import aster.parser.Parser;
@@ -28,6 +30,11 @@ import aster.ui.Ui;
  * the talking, the {@link Parser} works out what was asked, a {@code Command} carries
  * it out on the {@link TaskList}, and the {@link Storage} keeps the tasks between
  * visits.
+ *
+ * <p>Aster can be talked to in two ways. {@link #run()} holds a whole conversation in
+ * the terminal, while {@link #startConversation()} and {@link #getResponse(String)}
+ * answer one message at a time for a graphical interface. Both carry out a command
+ * through the same step, so the two cannot come to behave differently.
  */
 public class Aster {
     // Kept relative, and built from its parts rather than written with a separator, so
@@ -37,6 +44,16 @@ public class Aster {
     private final Ui ui;
     private final Storage storage;
     private TaskList tasks;
+
+    /**
+     * Creates a chatbot that keeps its tasks in the usual file, {@code data/aster.txt}.
+     *
+     * <p>This is how a graphical interface creates Aster, since it has no file to pass
+     * in.
+     */
+    public Aster() {
+        this(DATA_FILE);
+    }
 
     /**
      * Creates a chatbot that keeps its tasks in the given file.
@@ -54,13 +71,10 @@ public class Aster {
      *
      * <p>If the saved tasks cannot be read, Aster explains why and stops before taking
      * any command, so that a file which may still be worth keeping is not written over.
-     *
-     * <p>Every failure surfaces in one place here, so nothing else reports errors, and
-     * the task list keeps its previous contents whenever a command is refused.
      */
     public void run() {
         try {
-            tasks = new TaskList(storage.load());
+            loadTasks();
         } catch (AsterException e) {
             ui.showLoadingError(e.getMessage());
             return;
@@ -73,18 +87,110 @@ public class Aster {
                 break;
             }
             ui.showLine();
-            try {
-                Parser.parse(fullCommand).execute(tasks, ui, storage);
-            } catch (AsterException e) {
-                ui.showError(e.getMessage());
-            }
+            carryOut(fullCommand, ui);
             ui.showLine();
         }
         ui.showGoodbye();
     }
 
     /**
-     * Starts the chatbot.
+     * Reads any saved tasks and returns the reply that opens the conversation.
+     *
+     * <p>If the saved tasks cannot be read, the reply explains why and ends the
+     * conversation, so that no command is carried out and a file which may still be
+     * worth keeping is not written over. This mirrors {@link #run()} stopping before it
+     * takes any command.
+     *
+     * @return the greeting, or the reason the conversation cannot start.
+     */
+    public Response startConversation() {
+        List<String> lines = new ArrayList<>();
+        Ui reply = new Ui(lines::add);
+        try {
+            loadTasks();
+        } catch (AsterException e) {
+            reply.showError(e.getMessage());
+            return new Response(joinLines(lines), true);
+        }
+        reply.showGreeting();
+        return new Response(joinLines(lines), false);
+    }
+
+    /**
+     * Returns Aster's reply to one message.
+     *
+     * <p>The message is trimmed first, as the text interface trims each line it reads.
+     * {@code bye} ends the conversation with a farewell. Anything else is carried out
+     * exactly as {@link #run()} carries it out, and the lines it produces form the reply,
+     * so a refused command is answered with its explanation rather than thrown.
+     *
+     * <p>Showing an empty task list is the only command that produces no line at all.
+     * The text interface's dividers still mark that exchange, but a reply here would be
+     * blank, so it says that the list is empty instead.
+     *
+     * @param input the message exactly as the user typed it.
+     * @return the reply, and whether it ends the conversation.
+     * @throws IllegalStateException if the conversation has not started successfully.
+     */
+    public Response getResponse(String input) {
+        if (tasks == null) {
+            throw new IllegalStateException("The conversation has not started successfully.");
+        }
+        String fullCommand = input.trim();
+        List<String> lines = new ArrayList<>();
+        Ui reply = new Ui(lines::add);
+        if (Parser.isExit(fullCommand)) {
+            reply.showFarewell();
+            return new Response(joinLines(lines), true);
+        }
+        carryOut(fullCommand, reply);
+        if (lines.isEmpty()) {
+            reply.showEmptyList();
+        }
+        return new Response(joinLines(lines), false);
+    }
+
+    /**
+     * Reads the saved tasks into the task list.
+     *
+     * <p>The task list is replaced only once the tasks have been read, so a failed read
+     * leaves it as it was.
+     *
+     * @throws AsterException if the saved tasks cannot be read.
+     */
+    private void loadTasks() throws AsterException {
+        tasks = new TaskList(storage.load());
+    }
+
+    /**
+     * Carries out one command line, reporting its outcome through the given interface.
+     *
+     * <p>Every failure surfaces in this one place, so nothing else reports errors, and
+     * the task list keeps its previous contents whenever a command is refused.
+     *
+     * @param fullCommand the trimmed command line, which is not {@code bye}.
+     * @param target the interface to report the outcome through.
+     */
+    private void carryOut(String fullCommand, Ui target) {
+        try {
+            Parser.parse(fullCommand).execute(tasks, target, storage);
+        } catch (AsterException e) {
+            target.showError(e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the lines of a reply as one message.
+     *
+     * @param lines the lines, in the order they were shown.
+     * @return the lines separated by {@code \n}, with no line ending after the last.
+     */
+    private static String joinLines(List<String> lines) {
+        return String.join("\n", lines);
+    }
+
+    /**
+     * Starts the chatbot in the terminal.
      *
      * @param args command line arguments; not used.
      */
