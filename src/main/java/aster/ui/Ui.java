@@ -2,28 +2,59 @@ package aster.ui;
 
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.Consumer;
 
 import aster.task.Task;
 
 /**
  * Handles everything the user reads and types.
  *
- * <p>Every line Aster prints and every line it reads passes through here, so the
- * wording and the layout of the conversation are decided in one place. Nothing else
- * writes to the screen or reads from the keyboard.
+ * <p>Every line Aster says and every line it reads passes through here, so the
+ * wording and the layout of the conversation are decided in one place. Where each line
+ * goes is decided when the interface is created: the text interface prints it to
+ * standard output, while a graphical interface can collect the lines of one reply to
+ * show them together.
  */
 public class Ui {
     private static final String DIVIDER =
             "____________________________________________________________";
 
     private final Scanner scanner;
+    private final Consumer<String> lineWriter;
 
     /**
      * Creates a user interface that reads from standard input and writes to standard
      * output.
      */
     public Ui() {
-        this.scanner = new Scanner(System.in);
+        // A lambda rather than a method reference, so standard output is looked up for
+        // every line, exactly as it was when each line was printed directly.
+        this(new Scanner(System.in), line -> System.out.println(line));
+    }
+
+    /**
+     * Creates a user interface that reads nothing and hands every line it would show to
+     * the given writer.
+     *
+     * <p>This lets a caller gather what Aster says in reply to one message without
+     * reading from the keyboard or writing to the screen.
+     *
+     * @param lineWriter receives each line, without a line ending, in the order shown.
+     */
+    public Ui(Consumer<String> lineWriter) {
+        this(new Scanner(""), lineWriter);
+    }
+
+    /**
+     * Creates a user interface with the given source of commands and destination of
+     * lines.
+     *
+     * @param scanner the source of the command lines the user types.
+     * @param lineWriter receives each line shown to the user.
+     */
+    private Ui(Scanner scanner, Consumer<String> lineWriter) {
+        this.scanner = scanner;
+        this.lineWriter = lineWriter;
     }
 
     /**
@@ -48,30 +79,44 @@ public class Ui {
     }
 
     /**
-     * Prints the line that separates one exchange from the next.
+     * Shows the line that separates one exchange from the next.
      */
     public void showLine() {
-        System.out.println(DIVIDER);
+        print(DIVIDER);
     }
 
     /**
-     * Greets the user at the start of the conversation.
+     * Greets the user at the start of the conversation, framed as an exchange of its own.
      */
     public void showWelcome() {
         showLine();
-        System.out.println("Hello! I'm Aster.");
-        System.out.println("I'm a simple chatbot, and I'm glad you're here.");
-        System.out.println("What can I do for you?");
+        showGreeting();
         showLine();
     }
 
     /**
-     * Says goodbye at the end of the conversation.
+     * Shows the lines that greet the user, without any framing.
+     */
+    public void showGreeting() {
+        print("Hello! I'm Aster.");
+        print("I'm a simple chatbot, and I'm glad you're here.");
+        print("What can I do for you?");
+    }
+
+    /**
+     * Says goodbye at the end of the conversation, framed as an exchange of its own.
      */
     public void showGoodbye() {
         showLine();
-        System.out.println("Goodbye for now. Take care!");
+        showFarewell();
         showLine();
+    }
+
+    /**
+     * Shows the line that ends the conversation, without any framing.
+     */
+    public void showFarewell() {
+        print("Goodbye for now. Take care!");
     }
 
     /**
@@ -82,7 +127,7 @@ public class Ui {
      */
     public void showLoadingError(String message) {
         showLine();
-        System.out.println(message);
+        print(message);
         showLine();
     }
 
@@ -92,7 +137,7 @@ public class Ui {
      * @param message the explanation to show the user.
      */
     public void showError(String message) {
-        System.out.println(message);
+        print(message);
     }
 
     /**
@@ -102,8 +147,8 @@ public class Ui {
      * @param taskCount the number of tasks in the list afterwards.
      */
     public void showAdded(Task task, int taskCount) {
-        System.out.println("Got it. I've added this task:");
-        System.out.println("  " + task);
+        print("Got it. I've added this task:");
+        print("  " + task);
         showCount(taskCount);
     }
 
@@ -114,8 +159,8 @@ public class Ui {
      * @param taskCount the number of tasks in the list afterwards.
      */
     public void showRemoved(Task task, int taskCount) {
-        System.out.println("Noted. I've removed this task:");
-        System.out.println("  " + task);
+        print("Noted. I've removed this task:");
+        print("  " + task);
         showCount(taskCount);
     }
 
@@ -125,8 +170,8 @@ public class Ui {
      * @param task the task that was marked.
      */
     public void showMarked(Task task) {
-        System.out.println("Nice! I've marked this task as done:");
-        System.out.println("  " + task);
+        print("Nice! I've marked this task as done:");
+        print("  " + task);
     }
 
     /**
@@ -135,21 +180,21 @@ public class Ui {
      * @param task the task that was marked.
      */
     public void showUnmarked(Task task) {
-        System.out.println("Alright, I've marked this task as not done yet:");
-        System.out.println("  " + task);
+        print("Alright, I've marked this task as not done yet:");
+        print("  " + task);
     }
 
     /**
      * Shows the tasks in the order they were added.
      *
-     * <p>An empty list prints nothing at all. The numbering shown to the user starts
+     * <p>An empty list shows nothing at all. The numbering shown to the user starts
      * at one, so it is offset from the position in the list.
      *
      * @param tasks the tasks to show.
      */
     public void showTasks(List<Task> tasks) {
         for (int i = 0; i < tasks.size(); i++) {
-            System.out.println((i + 1) + ". " + tasks.get(i));
+            print((i + 1) + ". " + tasks.get(i));
         }
     }
 
@@ -165,21 +210,42 @@ public class Ui {
      */
     public void showFound(List<Task> tasks) {
         if (tasks.isEmpty()) {
-            System.out.println("No tasks match that keyword.");
+            print("No tasks match that keyword.");
             return;
         }
-        System.out.println("Here are the matching tasks in your list:");
+        print("Here are the matching tasks in your list:");
         showTasks(tasks);
     }
 
     /**
-     * Prints how many tasks the list holds, as shown after adding or removing one.
+     * Says that there are no tasks to show.
+     *
+     * <p>{@link #showTasks(List)} shows nothing for an empty list, which suits the text
+     * interface, where the dividers around the exchange still mark the reply. A
+     * graphical interface has no such dividers, so it says this instead of showing an
+     * empty reply. The text interface never calls it.
+     */
+    public void showEmptyList() {
+        print("Your list is empty.");
+    }
+
+    /**
+     * Shows how many tasks the list holds, as shown after adding or removing one.
      *
      * @param taskCount the number of tasks in the list.
      */
     private void showCount(int taskCount) {
-        System.out.println("Now you have " + taskCount + " " + getTaskNoun(taskCount)
+        print("Now you have " + taskCount + " " + getTaskNoun(taskCount)
                 + " in the list.");
+    }
+
+    /**
+     * Hands one line to wherever this interface sends what it shows.
+     *
+     * @param line the line to show, without a line ending.
+     */
+    private void print(String line) {
+        lineWriter.accept(line);
     }
 
     /**
