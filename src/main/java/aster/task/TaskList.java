@@ -105,12 +105,8 @@ public class TaskList {
      */
     public List<Task> find(String keyword) {
         String wanted = keyword.trim().toLowerCase(Locale.ENGLISH);
-        List<Task> matches = new ArrayList<>();
-        for (Task task : tasks) {
-            if (task.getDescription().toLowerCase(Locale.ENGLISH).contains(wanted)) {
-                matches.add(task);
-            }
-        }
-        return Collections.unmodifiableList(matches);
+        return tasks.stream()
+                .filter(task -> task.getDescription().toLowerCase(Locale.ENGLISH).contains(wanted))
+                .toList();
     }
 }
