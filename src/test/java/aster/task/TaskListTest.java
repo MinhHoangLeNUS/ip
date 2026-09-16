@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Tests {@link TaskList#find(String)}, the keyword search behind the {@code find}
- * command.
+ * command, and {@link TaskList#getStatistics()}, the counting behind {@code stats}.
  *
  * <p>The cases below pin down every part of its promise: which text it searches, that
  * it ignores letter case, that it takes the keyword literally rather than as a pattern,
@@ -125,6 +125,54 @@ class TaskListTest {
         assertThrows(UnsupportedOperationException.class, () -> matches.add(new Todo("sneak in")));
     }
 
+    // ---------- getStatistics ----------
+
+    @Test
+    void getStatistics_emptyList_returnsAllZero() {
+        assertEquals(new TaskStatistics(0, 0, 0, 0, 0), new TaskList().getStatistics());
+    }
+
+    @Test
+    void getStatistics_oneTodo_countsOneTodoNotCompleted() {
+        assertEquals(new TaskStatistics(1, 0, 1, 0, 0), todosOf("read book").getStatistics());
+    }
+
+    @Test
+    void getStatistics_mixedTypesSomeDone_countsEachFigure() {
+        TaskList tasks = mixedList();
+        tasks.get(0).markAsDone();
+        tasks.get(2).markAsDone();
+
+        assertEquals(new TaskStatistics(5, 2, 2, 2, 1), tasks.getStatistics());
+    }
+
+    @Test
+    void getStatistics_noneDone_countsNoneCompleted() {
+        assertEquals(0, mixedList().getStatistics().completed());
+    }
+
+    @Test
+    void getStatistics_allDone_countsAllCompleted() {
+        TaskList tasks = mixedList();
+        for (Task task : tasks.asList()) {
+            task.markAsDone();
+        }
+
+        assertEquals(5, tasks.getStatistics().completed());
+    }
+
+    @Test
+    void getStatistics_anyList_leavesListUnchanged() {
+        TaskList tasks = mixedList();
+        tasks.get(1).markAsDone();
+        List<Task> before = List.copyOf(tasks.asList());
+
+        tasks.getStatistics();
+
+        assertEquals(before, tasks.asList());
+        assertEquals(List.of(false, true, false, false, false), doneFlagsOf(tasks.asList()));
+    }
+
     // ---------- helpers ----------
 
     /**
@@ -153,5 +201,34 @@ class TaskListTest {
             descriptions.add(task.getDescription());
         }
         return descriptions;
+    }
+
+    /**
+     * Returns a list of two todos, two deadlines and one event, none of them done, in an
+     * order that interleaves the types.
+     *
+     * @return the list.
+     */
+    private static TaskList mixedList() {
+        return new TaskList(List.of(
+                new Todo("read book"),
+                new Deadline("return book", LocalDate.of(2019, 6, 6)),
+                new Event("project meeting", LocalDate.of(2019, 8, 6), LocalDate.of(2019, 8, 8)),
+                new Todo("wash up"),
+                new Deadline("submit report", LocalDate.of(2019, 9, 1))));
+    }
+
+    /**
+     * Returns whether each of the given tasks is done, in order.
+     *
+     * @param tasks the tasks to read.
+     * @return their done flags, so a failure names which task changed.
+     */
+    private static List<Boolean> doneFlagsOf(List<Task> tasks) {
+        List<Boolean> flags = new ArrayList<>();
+        for (Task task : tasks) {
+            flags.add(task.isDone());
+        }
+        return flags;
     }
 }

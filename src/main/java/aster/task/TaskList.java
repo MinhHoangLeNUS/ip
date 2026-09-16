@@ -109,4 +109,33 @@ public class TaskList {
                 .filter(task -> task.getDescription().toLowerCase(Locale.ENGLISH).contains(wanted))
                 .toList();
     }
+
+    /**
+     * Returns how many tasks the list holds, how many are done, and how many there are of
+     * each type.
+     *
+     * <p>The tasks are counted in a single pass, and counting leaves the list exactly as it
+     * was.
+     *
+     * @return the statistics of the list as it stands.
+     */
+    public TaskStatistics getStatistics() {
+        int completed = 0;
+        int todos = 0;
+        int deadlines = 0;
+        int events = 0;
+        for (Task task : tasks) {
+            if (task.isDone()) {
+                completed++;
+            }
+            if (task instanceof Todo) {
+                todos++;
+            } else if (task instanceof Deadline) {
+                deadlines++;
+            } else if (task instanceof Event) {
+                events++;
+            }
+        }
+        return new TaskStatistics(tasks.size(), completed, todos, deadlines, events);
+    }
 }
