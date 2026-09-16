@@ -48,6 +48,8 @@ public final class Parser {
     private static final String DATE_USAGE = "Dates go in the form yyyy-MM-dd, for example "
             + "2019-12-02.";
 
+    private static final String VOWELS = "aeiou";
+
     /**
      * Prevents instances being created, since this class holds only static helpers.
      */
@@ -262,7 +264,7 @@ public final class Parser {
      * @return {@code "n "} before a vowel, otherwise {@code " "}.
      */
     private static String getArticleSuffix(String word) {
-        return "aeiou".indexOf(word.charAt(0)) >= 0 ? "n " : " ";
+        return VOWELS.indexOf(word.charAt(0)) >= 0 ? "n " : " ";
     }
 
     /**
