@@ -124,7 +124,7 @@ class AsterTest {
         Response reply = startedAster().getResponse("blah");
 
         assertEquals("I don't recognize \"blah\". I understand: todo, deadline, event, list, "
-                + "find, mark, unmark, delete and bye.", reply.message());
+                + "find, stats, mark, unmark, delete and bye.", reply.message());
         assertFalse(reply.isExit());
     }
 
@@ -165,6 +165,60 @@ class AsterTest {
         Response reply = startedAster().getResponse("   ");
 
         assertEquals("I didn't catch a command. Type list to see your tasks, or bye to leave.",
+                reply.message());
+        assertFalse(reply.isExit());
+    }
+
+    @Test
+    void getResponse_stats_returnsStatisticsReply() {
+        Aster aster = startedAster();
+        aster.getResponse("todo read book");
+        aster.getResponse("deadline return book /by 2019-06-06");
+        aster.getResponse("event project meeting /from 2019-08-06 /to 2019-08-08");
+        aster.getResponse("mark 1");
+
+        Response reply = aster.getResponse("stats");
+
+        assertEquals("Here are your task statistics:\n"
+                + "Total: 3 tasks\n"
+                + "Completed: 1 (33%)\n"
+                + "Not completed: 2\n"
+                + "Todos: 1, Deadlines: 1, Events: 1", reply.message());
+        assertFalse(reply.isExit());
+    }
+
+    @Test
+    void getResponse_statsOnEmptyList_returnsNoStatisticsReplyAndCreatesNoFile() {
+        Response reply = startedAster().getResponse("stats");
+
+        assertEquals("You have no tasks yet, so there are no statistics to show.", reply.message());
+        assertFalse(reply.isExit());
+        assertFalse(Files.exists(tempDir.resolve(DATA_FILE_NAME)),
+                "showing statistics must not create the data file");
+    }
+
+    @Test
+    void getResponse_stats_leavesSavedFileAndListUnchanged() throws IOException {
+        Aster aster = startedAster();
+        aster.getResponse("todo read book");
+        aster.getResponse("deadline return book /by 2019-06-06");
+        aster.getResponse("mark 2");
+        Path file = tempDir.resolve(DATA_FILE_NAME);
+        byte[] before = Files.readAllBytes(file);
+        String listBefore = aster.getResponse("list").message();
+
+        aster.getResponse("stats");
+
+        assertArrayEquals(before, Files.readAllBytes(file),
+                "showing statistics must leave the saved file exactly as it was");
+        assertEquals(listBefore, aster.getResponse("list").message());
+    }
+
+    @Test
+    void getResponse_statsWithArguments_returnsNoArgumentsErrorNotExit() {
+        Response reply = startedAster().getResponse("stats extra");
+
+        assertEquals("The stats command takes nothing after it. Type stats on its own.",
                 reply.message());
         assertFalse(reply.isExit());
     }

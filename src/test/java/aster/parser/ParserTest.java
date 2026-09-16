@@ -8,11 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import aster.command.FindCommand;
+import aster.command.StatsCommand;
 import aster.exception.AsterException;
 
 /**
- * Tests how {@link Parser#parse(String)} reads a {@code find} command, and the exact
- * messages it gives when a deadline or event marker is missing or repeated.
+ * Tests how {@link Parser#parse(String)} reads a {@code find} or {@code stats} command,
+ * and the exact messages it gives when a deadline or event marker is missing or repeated.
  *
  * <p>The marker messages are compared in full, so that restructuring how they are built
  * cannot change what the user reads without a test noticing.
@@ -61,6 +62,19 @@ class ParserTest {
 
         assertTrue(thrown.getMessage().contains("find"),
                 "the list of understood commands must name find: " + thrown.getMessage());
+    }
+
+    @Test
+    void parse_stats_returnsStatsCommand() throws AsterException {
+        assertInstanceOf(StatsCommand.class, Parser.parse("stats"));
+    }
+
+    @Test
+    void parse_statsWithArguments_throwsNoArgumentsMessage() {
+        AsterException thrown = assertThrows(AsterException.class, () -> Parser.parse("stats extra"));
+
+        assertEquals("The stats command takes nothing after it. Type stats on its own.",
+                thrown.getMessage());
     }
 
     @Test

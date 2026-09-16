@@ -5,6 +5,7 @@ import java.util.Scanner;
 import java.util.function.Consumer;
 
 import aster.task.Task;
+import aster.task.TaskStatistics;
 
 /**
  * Handles everything the user reads and types.
@@ -215,6 +216,28 @@ public class Ui {
         }
         print("Here are the matching tasks in your list:");
         showTasks(tasks);
+    }
+
+    /**
+     * Shows how many tasks there are, how many are done, and how many of each type.
+     *
+     * <p>With no tasks there is nothing to count, so a single line says so instead of a
+     * list of zeros and a percentage of nothing.
+     *
+     * @param statistics the statistics to show.
+     */
+    public void showStatistics(TaskStatistics statistics) {
+        int total = statistics.total();
+        if (total == 0) {
+            print("You have no tasks yet, so there are no statistics to show.");
+            return;
+        }
+        print("Here are your task statistics:");
+        print("Total: " + total + " " + getTaskNoun(total));
+        print("Completed: " + statistics.completed() + " (" + statistics.completionPercent() + "%)");
+        print("Not completed: " + statistics.notCompleted());
+        print("Todos: " + statistics.todos() + ", Deadlines: " + statistics.deadlines()
+                + ", Events: " + statistics.events());
     }
 
     /**

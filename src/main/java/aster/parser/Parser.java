@@ -9,6 +9,7 @@ import aster.command.DeleteCommand;
 import aster.command.FindCommand;
 import aster.command.ListCommand;
 import aster.command.MarkCommand;
+import aster.command.StatsCommand;
 import aster.command.UnmarkCommand;
 import aster.exception.AsterException;
 import aster.task.Deadline;
@@ -20,9 +21,9 @@ import aster.task.Todo;
  * Makes sense of what the user typed.
  *
  * <p>This class works out which command was meant, and for {@code todo},
- * {@code deadline}, {@code event}, {@code list} and {@code find} it also checks the
- * parts that command needs: descriptions, keywords, markers, and whether the dates
- * named are real dates.
+ * {@code deadline}, {@code event}, {@code list}, {@code find} and {@code stats} it also
+ * checks the parts that command needs: descriptions, keywords, markers, and whether the
+ * dates named are real dates.
  *
  * <p>{@code mark}, {@code unmark} and {@code delete} are a deliberate exception.
  * Nothing about their argument is checked here, not even whether one was given or
@@ -81,7 +82,7 @@ public final class Parser {
      * @param fullCommand the trimmed command line entered by the user.
      * @return the command to carry out.
      * @throws AsterException if the line names no command Aster knows, or if the parts
-     *     a todo, deadline, event or list command needs are missing or malformed.
+     *     a todo, deadline, event, list or stats command needs are missing or malformed.
      */
     public static Command parse(String fullCommand) throws AsterException {
         // The line is already trimmed, so this separates the keyword from the rest.
@@ -108,6 +109,10 @@ public final class Parser {
             }
             case FIND -> new FindCommand(requireNonEmpty(arguments,
                     "Tell me what to look for. " + FIND_USAGE));
+            case STATS -> {
+                requireNoArguments(arguments, CommandType.STATS);
+                yield new StatsCommand();
+            }
             case MARK -> new MarkCommand(arguments);
             case UNMARK -> new UnmarkCommand(arguments);
             case DELETE -> new DeleteCommand(arguments);

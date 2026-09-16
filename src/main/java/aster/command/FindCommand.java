@@ -8,7 +8,7 @@ import aster.ui.Ui;
  * Shows the tasks whose description contains a keyword.
  *
  * <p>Like {@link ListCommand}, this command only reads the list, so it is one of the
- * two that never saves. The keyword has already been checked by the {@code Parser}, so
+ * commands that never save. The keyword has already been checked by the {@code Parser}, so
  * by the time this command exists it is known to hold something.
  */
 public class FindCommand extends Command {
