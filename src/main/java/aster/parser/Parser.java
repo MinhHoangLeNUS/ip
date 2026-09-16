@@ -251,6 +251,7 @@ public final class Parser {
      * @return {@code "n "} before a vowel, otherwise {@code " "}.
      */
     private static String getArticleSuffix(String word) {
+        assert !word.isEmpty() : "The word after an article must not be empty";
         return "aeiou".indexOf(word.charAt(0)) >= 0 ? "n " : " ";
     }
 
