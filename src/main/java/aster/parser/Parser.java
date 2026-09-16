@@ -235,13 +235,24 @@ public final class Parser {
             String usage) throws AsterException {
         int count = countMarkers(arguments, marker);
         if (count == 0) {
-            throw new AsterException("A" + getArticleSuffix(taskType) + taskType + " needs a " + marker
+            throw new AsterException(withArticle(taskType) + " needs a " + marker
                     + " part. " + usage);
         }
         if (count > 1) {
-            throw new AsterException("A" + getArticleSuffix(taskType) + taskType + " can have only one "
+            throw new AsterException(withArticle(taskType) + " can have only one "
                     + marker + " part. " + usage);
         }
+    }
+
+    /**
+     * Returns the task type preceded by the article that suits it, capitalized to begin a
+     * message, for example {@code "A deadline"} or {@code "An event"}.
+     *
+     * @param taskType the task type named in the message.
+     * @return the article and the task type, ready to start a sentence.
+     */
+    private static String withArticle(String taskType) {
+        return "A" + getArticleSuffix(taskType) + taskType;
     }
 
     /**
