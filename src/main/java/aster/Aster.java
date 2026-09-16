@@ -172,6 +172,8 @@ public class Aster {
      * @param target the interface to report the outcome through.
      */
     private void carryOut(String fullCommand, Ui target) {
+        assert tasks != null : "The saved tasks must be loaded before any command is carried out";
+        assert !Parser.isExit(fullCommand) : "bye must be handled by the caller, not carried out";
         try {
             Parser.parse(fullCommand).execute(tasks, target, storage);
         } catch (AsterException e) {

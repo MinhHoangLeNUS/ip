@@ -200,6 +200,7 @@ public class Storage {
      * @throws AsterException if the line cannot be understood.
      */
     private Task decode(String line) throws AsterException {
+        assert !line.isBlank() : "Blank lines must be skipped before a line is decoded";
         List<String> fields = splitFields(line);
         if (fields.size() < MINIMUM_FIELDS) {
             throw new AsterException(buildUnreadableFileMessage());
