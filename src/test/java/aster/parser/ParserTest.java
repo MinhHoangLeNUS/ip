@@ -1,5 +1,6 @@
 package aster.parser;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,7 +11,11 @@ import aster.command.FindCommand;
 import aster.exception.AsterException;
 
 /**
- * Tests how {@link Parser#parse(String)} reads a {@code find} command.
+ * Tests how {@link Parser#parse(String)} reads a {@code find} command, and the exact
+ * messages it gives when a deadline or event marker is missing or repeated.
+ *
+ * <p>The marker messages are compared in full, so that restructuring how they are built
+ * cannot change what the user reads without a test noticing.
  *
  * <p>{@code find} is one of the commands whose wording the parser checks in full, so
  * these cases cover both halves of that promise: a line carrying a keyword produces a
@@ -56,5 +61,45 @@ class ParserTest {
 
         assertTrue(thrown.getMessage().contains("find"),
                 "the list of understood commands must name find: " + thrown.getMessage());
+    }
+
+    @Test
+    void parse_deadlineWithoutBy_throwsMissingMarkerMessage() {
+        String input = "deadline return book";
+
+        AsterException thrown = assertThrows(AsterException.class, () -> Parser.parse(input));
+
+        assertEquals("A deadline needs a /by part. Try: deadline return book /by 2019-12-02",
+                thrown.getMessage());
+    }
+
+    @Test
+    void parse_deadlineWithTwoBy_throwsRepeatedMarkerMessage() {
+        String input = "deadline return book /by 2019-06-06 /by 2019-06-07";
+
+        AsterException thrown = assertThrows(AsterException.class, () -> Parser.parse(input));
+
+        assertEquals("A deadline can have only one /by part. Try: deadline return book /by 2019-12-02",
+                thrown.getMessage());
+    }
+
+    @Test
+    void parse_eventWithoutFrom_throwsMissingMarkerMessage() {
+        String input = "event project meeting /to 2019-08-08";
+
+        AsterException thrown = assertThrows(AsterException.class, () -> Parser.parse(input));
+
+        assertEquals("An event needs a /from part. "
+                + "Try: event project meeting /from 2019-12-02 /to 2019-12-03", thrown.getMessage());
+    }
+
+    @Test
+    void parse_eventWithTwoTo_throwsRepeatedMarkerMessage() {
+        String input = "event project meeting /from 2019-08-06 /to 2019-08-07 /to 2019-08-08";
+
+        AsterException thrown = assertThrows(AsterException.class, () -> Parser.parse(input));
+
+        assertEquals("An event can have only one /to part. "
+                + "Try: event project meeting /from 2019-12-02 /to 2019-12-03", thrown.getMessage());
     }
 }
