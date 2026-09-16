@@ -24,6 +24,8 @@ import aster.task.TaskList;
  * number, and keeping the four checks together is what keeps that order.
  */
 abstract class IndexedCommand extends Command {
+    private static final int EXAMPLE_TASK_NUMBER = 2;
+
     private final CommandType type;
     private final String arguments;
 
@@ -50,10 +52,10 @@ abstract class IndexedCommand extends Command {
      */
     protected int resolveIndex(TaskList tasks) throws AsterException {
         String keyword = type.getKeyword();
+        String usageExample = "Try: " + keyword + " " + EXAMPLE_TASK_NUMBER;
         int taskCount = tasks.size();
         if (arguments.isEmpty()) {
-            throw new AsterException("Tell me which task to " + keyword + ". Try: " + keyword
-                    + " 2");
+            throw new AsterException("Tell me which task to " + keyword + ". " + usageExample);
         }
         if (taskCount == 0) {
             throw new AsterException("Your list is empty, so there is nothing to " + keyword
@@ -63,8 +65,7 @@ abstract class IndexedCommand extends Command {
         try {
             number = Integer.parseInt(arguments);
         } catch (NumberFormatException e) {
-            throw new AsterException("\"" + arguments + "\" is not a task number. Try: "
-                    + keyword + " 2");
+            throw new AsterException("\"" + arguments + "\" is not a task number. " + usageExample);
         }
         if (number < 1 || number > taskCount) {
             throw new AsterException("You have " + taskCount + " " + getTaskNoun(taskCount)
