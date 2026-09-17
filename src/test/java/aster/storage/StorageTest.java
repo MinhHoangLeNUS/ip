@@ -102,6 +102,21 @@ class StorageTest {
         assertTrue(loaded.get(1).isDone());
     }
 
+    @Test
+    void load_eventEndingBeforeItStarts_readsItUnchanged() throws IOException, AsterException {
+        // Refusing such an event is a check on what the user types, not on what was saved
+        // earlier, so a file holding one must still open rather than lock the user out.
+        Path file = tempDir.resolve(DATA_FILE_NAME);
+        writeLines(file, "E | 0 | project meeting | 2019-08-08 | 2019-08-06");
+
+        List<Task> loaded = new Storage(file).load();
+
+        assertEquals(1, loaded.size());
+        Event loadedEvent = assertInstanceOf(Event.class, loaded.get(0));
+        assertEquals(LocalDate.of(2019, 8, 8), loadedEvent.getFrom());
+        assertEquals(LocalDate.of(2019, 8, 6), loadedEvent.getTo());
+    }
+
     // ---------- save then load: what a task must survive ----------
 
     @Test

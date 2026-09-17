@@ -25,6 +25,9 @@ import aster.task.TaskList;
  */
 abstract class IndexedCommand extends Command {
     private static final int EXAMPLE_TASK_NUMBER = 2;
+    // Spelled out rather than \d, so that no reading of the pattern can let in digits
+    // from other scripts, which Integer.parseInt would otherwise accept.
+    private static final String PLAIN_DIGITS = "[0-9]+";
 
     private final CommandType type;
     private final String arguments;
@@ -46,6 +49,11 @@ abstract class IndexedCommand extends Command {
      * <p>Every way the number can be unusable is turned into an {@link AsterException},
      * so no {@code NumberFormatException} or index exception reaches the user.
      *
+     * <p>Only plain ASCII digits make a number. A sign, a decimal point, a space or a digit
+     * from another script is not a number, even though {@code Integer.parseInt} would read
+     * some of them. A digit string too long to fit an {@code int} is still a number, just
+     * one too large for any list, so it is reported as out of range.
+     *
      * @param tasks the task list the number refers to.
      * @return the 0-based position of the task the command refers to.
      * @throws AsterException if the number is missing, not a number, or outside the list.
@@ -61,18 +69,32 @@ abstract class IndexedCommand extends Command {
             throw new AsterException("Your list is empty, so there is nothing to " + keyword
                     + " yet.");
         }
+        if (!arguments.matches(PLAIN_DIGITS)) {
+            throw new AsterException("\"" + arguments + "\" is not a task number. " + usageExample);
+        }
         int number;
         try {
             number = Integer.parseInt(arguments);
         } catch (NumberFormatException e) {
-            throw new AsterException("\"" + arguments + "\" is not a task number. " + usageExample);
+            // Only plain digits reach here, so the number is simply too large for an int.
+            throw new AsterException(buildOutOfRangeMessage(arguments, taskCount));
         }
         if (number < 1 || number > taskCount) {
-            throw new AsterException("You have " + taskCount + " " + getTaskNoun(taskCount)
-                    + ", so " + number + " is out of range. Pick a number from 1 to "
-                    + taskCount + ".");
+            throw new AsterException(buildOutOfRangeMessage(String.valueOf(number), taskCount));
         }
         return number - 1;
+    }
+
+    /**
+     * Returns the message for a task number that names no task in the list.
+     *
+     * @param numberText the number as it is to be shown.
+     * @param taskCount the number of tasks in the list.
+     * @return the explanation, naming the range of numbers that would be accepted.
+     */
+    private static String buildOutOfRangeMessage(String numberText, int taskCount) {
+        return "You have " + taskCount + " " + getTaskNoun(taskCount) + ", so " + numberText
+                + " is out of range. Pick a number from 1 to " + taskCount + ".";
     }
 
     /**

@@ -186,6 +186,29 @@ public class Ui {
     }
 
     /**
+     * Reports a task that was already done when marking it was asked for.
+     *
+     * <p>This is not an error: the task is in the state that was asked for, so it is
+     * shown as it stands rather than refused.
+     *
+     * @param task the task that was already done.
+     */
+    public void showAlreadyMarked(Task task) {
+        print("This task is already marked as done:");
+        print("  " + task);
+    }
+
+    /**
+     * Reports a task that was already not done when unmarking it was asked for.
+     *
+     * @param task the task that was already not done.
+     */
+    public void showAlreadyUnmarked(Task task) {
+        print("This task is already marked as not done:");
+        print("  " + task);
+    }
+
+    /**
      * Shows the tasks in the order they were added.
      *
      * <p>An empty list shows nothing at all. The numbering shown to the user starts

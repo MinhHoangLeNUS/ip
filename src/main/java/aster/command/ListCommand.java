@@ -7,8 +7,7 @@ import aster.ui.Ui;
 /**
  * Shows the tasks currently in the list.
  *
- * <p>This is the only command that leaves the list as it was, so it is also the only
- * one that does not save.
+ * <p>Showing the list leaves it as it was, so this command never saves.
  */
 public class ListCommand extends Command {
     /**

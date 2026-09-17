@@ -20,12 +20,13 @@ import aster.ui.Ui;
  * {@code find <keyword>} shows those whose description contains the keyword,
  * {@code stats} shows how many tasks there are, how many are done and how many of each
  * type, {@code mark <number>} and {@code unmark <number>} change the done status of one
- * task, and {@code delete <number>} removes one task. Anything else is refused with
- * an explanation: unrecognized commands, missing descriptions, missing, repeated or
- * out-of-order {@code /by}, {@code /from} and {@code /to} parts, dates not written
- * as {@code yyyy-MM-dd}, and unusable task numbers. A refused command leaves the
- * task list unchanged. The tasks are saved whenever the list changes, and read
- * back when Aster next starts, so the list survives leaving and returning.
+ * task, leaving a task already in that state as it is, and {@code delete <number>}
+ * removes one task. Anything else is refused with an explanation: unrecognized commands,
+ * missing descriptions, missing, repeated or out-of-order {@code /by}, {@code /from}
+ * and {@code /to} parts, dates not written as {@code yyyy-MM-dd}, events that end
+ * before they start, and unusable task numbers. A refused command leaves the task list
+ * unchanged. The tasks are saved whenever the list changes, and read back when Aster
+ * next starts, so the list survives leaving and returning.
  *
  * <p>This class holds the conversation together and nothing else: the {@link Ui} does
  * the talking, the {@link Parser} works out what was asked, a {@code Command} carries

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import aster.command.AddCommand;
 import aster.command.FindCommand;
 import aster.command.StatsCommand;
 import aster.exception.AsterException;
@@ -115,5 +116,40 @@ class ParserTest {
 
         assertEquals("An event can have only one /to part. "
                 + "Try: event project meeting /from 2019-12-02 /to 2019-12-03", thrown.getMessage());
+    }
+
+    @Test
+    void parse_eventEndingBeforeItStarts_throwsBackwardsEventMessage() {
+        String input = "event project meeting /from 2019-08-08 /to 2019-08-06";
+
+        AsterException thrown = assertThrows(AsterException.class, () -> Parser.parse(input));
+
+        assertEquals("An event needs its /to date on or after its /from date. "
+                + "Try: event project meeting /from 2019-12-02 /to 2019-12-03", thrown.getMessage());
+    }
+
+    @Test
+    void parse_eventEndingOnTheDayItStarts_returnsAddCommand() throws AsterException {
+        // A whole-day event is written with the same date twice, so it must stay accepted.
+        assertInstanceOf(AddCommand.class,
+                Parser.parse("event project meeting /from 2019-08-06 /to 2019-08-06"));
+    }
+
+    @Test
+    void parse_eventEndingAfterItStarts_returnsAddCommand() throws AsterException {
+        assertInstanceOf(AddCommand.class,
+                Parser.parse("event project meeting /from 2019-08-06 /to 2019-08-08"));
+    }
+
+    @Test
+    void parse_eventEndingBeforeItStartsWithUnreadableDate_throwsDateMessage() {
+        // The dates are read before their order is judged, so wording that is not a date
+        // at all is still answered with the date message.
+        String input = "event project meeting /from 2019-08-08 /to tomorrow";
+
+        AsterException thrown = assertThrows(AsterException.class, () -> Parser.parse(input));
+
+        assertEquals("I couldn't read \"tomorrow\" as a date. "
+                + "Dates go in the form yyyy-MM-dd, for example 2019-12-02.", thrown.getMessage());
     }
 }
