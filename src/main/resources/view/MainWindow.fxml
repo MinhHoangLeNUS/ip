@@ -47,7 +47,8 @@
                     AnchorPane.topAnchor="0.0">
             <content>
                 <VBox fx:id="dialogContainer"
-                      prefWidth="388.0" />
+                      prefWidth="388.0"
+                      styleClass="dialog-container" />
             </content>
         </ScrollPane>
     </children>

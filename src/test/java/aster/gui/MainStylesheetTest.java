@@ -50,6 +50,18 @@ class MainStylesheetTest {
                 "the stylesheet must style error replies with " + selector);
     }
 
+    @Test
+    void stylesheet_userAndAsterDialogs_haveBubbleRules() throws IOException {
+        URL stylesheet = MainStylesheetTest.class.getResource("/css/main.css");
+        assertNotNull(stylesheet, "the stylesheet must be on the class path");
+        String css = readText(stylesheet);
+
+        for (String styleClass : new String[] {DialogBox.USER_STYLE_CLASS, DialogBox.ASTER_STYLE_CLASS}) {
+            String selector = "." + styleClass + " .bubble";
+            assertTrue(css.contains(selector), "the stylesheet must style these messages with " + selector);
+        }
+    }
+
     /**
      * Returns the whole content of a text resource.
      *

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
 
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -14,6 +15,7 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
+import javafx.scene.shape.Circle;
 
 /**
  * A dialog box showing one message beside the picture of whoever said it.
@@ -26,12 +28,20 @@ import javafx.scene.layout.HBox;
  * <p>Each dialog box also carries exactly one style class saying whose message it is, or
  * that it is a reply containing an error, so the stylesheet can show each kind its own
  * way. A reply containing an error sits on Aster's side like any other reply.
+ *
+ * <p>Pictures are shown small and round. A message from the user is kept to three
+ * quarters of the row, so short commands read as compact entries, while Aster's replies,
+ * which can hold a lot of text, may use the whole row.
  */
 public class DialogBox extends HBox {
     // Shared with the stylesheet tests, which is why these are not private.
     static final String USER_STYLE_CLASS = "user-dialog";
     static final String ASTER_STYLE_CLASS = "aster-dialog";
     static final String ERROR_STYLE_CLASS = "error-dialog";
+
+    // Half the 40 px picture size set in DialogBox.fxml, so the circle fills the picture.
+    private static final double PICTURE_RADIUS = 20;
+    private static final double USER_MESSAGE_WIDTH_RATIO = 0.75;
 
     @FXML
     private Label dialog;
@@ -58,6 +68,8 @@ public class DialogBox extends HBox {
         }
         dialog.setText(text);
         displayPicture.setImage(image);
+        // A node can clip only one other node, so every picture gets a circle of its own.
+        displayPicture.setClip(new Circle(PICTURE_RADIUS, PICTURE_RADIUS, PICTURE_RADIUS));
         getStyleClass().add(kindStyleClass);
     }
 
@@ -66,10 +78,13 @@ public class DialogBox extends HBox {
      *
      * @param text the message, exactly as the user typed it.
      * @param image the user's picture.
-     * @return a dialog box with the picture on the right.
+     * @return a dialog box with the picture on the right, its message kept to three
+     *     quarters of the row.
      */
     public static DialogBox getUserDialog(String text, Image image) {
-        return new DialogBox(text, image, USER_STYLE_CLASS);
+        DialogBox dialogBox = new DialogBox(text, image, USER_STYLE_CLASS);
+        dialogBox.limitMessageWidth();
+        return dialogBox;
     }
 
     /**
@@ -98,6 +113,29 @@ public class DialogBox extends HBox {
         DialogBox dialogBox = new DialogBox(text, image, ERROR_STYLE_CLASS);
         dialogBox.flip();
         return dialogBox;
+    }
+
+    /**
+     * Keeps the message to three quarters of this dialog box's width.
+     *
+     * <p>The row's width is set by the conversation it sits in, never by the message, so
+     * the limit cannot feed back into the width it is taken from. Until the row has been
+     * laid out its width is zero, and the message is left unlimited rather than squeezed
+     * to nothing for that first pass.
+     */
+    private void limitMessageWidth() {
+        dialog.maxWidthProperty().bind(
+                Bindings.createDoubleBinding(this::computeMessageWidthLimit, widthProperty()));
+    }
+
+    /**
+     * Returns the widest the message may be, given this dialog box's current width.
+     *
+     * @return three quarters of the width, or no limit while the width is still zero.
+     */
+    private double computeMessageWidthLimit() {
+        double width = getWidth();
+        return width > 0 ? width * USER_MESSAGE_WIDTH_RATIO : Double.MAX_VALUE;
     }
 
     /**
