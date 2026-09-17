@@ -22,8 +22,8 @@ import aster.task.Todo;
  *
  * <p>This class works out which command was meant, and for {@code todo},
  * {@code deadline}, {@code event}, {@code list}, {@code find} and {@code stats} it also
- * checks the parts that command needs: descriptions, keywords, markers, and whether the
- * dates named are real dates.
+ * checks the parts that command needs: descriptions, keywords, markers, whether the
+ * dates named are real dates, and that an event does not end before it starts.
  *
  * <p>{@code mark}, {@code unmark} and {@code delete} are a deliberate exception.
  * Nothing about their argument is checked here, not even whether one was given or
@@ -82,7 +82,8 @@ public final class Parser {
      * @param fullCommand the trimmed command line entered by the user.
      * @return the command to carry out.
      * @throws AsterException if the line names no command Aster knows, or if the parts
-     *     a todo, deadline, event, list or stats command needs are missing or malformed.
+     *     a todo, deadline, event, list, find or stats command needs are missing or
+     *     malformed.
      */
     public static Command parse(String fullCommand) throws AsterException {
         // The line is already trimmed, so this separates the keyword from the rest.

@@ -10,8 +10,9 @@ import aster.ui.Ui;
  *
  * <p>A command is built by the {@code Parser} and later carried out by
  * {@link #execute}. What the parser can check depends on the command: for a todo,
- * deadline, event or list it has already checked the wording, while a command that
- * names a task by number carries that text unchecked and settles it when it runs.
+ * deadline, event, list, find or stats it has already checked the wording, while a
+ * command that names a task by number carries that text unchecked and settles it when
+ * it runs.
  * See {@link IndexedCommand} for why those checks are held back.
  *
  * <p>A command that changes the task list asks for it to be saved after the change has
