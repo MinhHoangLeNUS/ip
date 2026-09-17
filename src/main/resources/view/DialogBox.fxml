@@ -14,7 +14,7 @@
          xmlns:fx="http://javafx.com/fxml/1">
     <children>
         <Label fx:id="dialog" styleClass="bubble" text="Label" wrapText="true" minHeight="-Infinity" />
-        <ImageView fx:id="displayPicture" fitHeight="40.0" fitWidth="40.0" pickOnBounds="true"
+        <ImageView fx:id="displayPicture" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true"
                    preserveRatio="true" smooth="true" />
     </children>
 </fx:root>

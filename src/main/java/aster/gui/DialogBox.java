@@ -15,21 +15,20 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
-import javafx.scene.shape.Circle;
 
 /**
- * A dialog box showing one message beside the picture of whoever said it.
+ * A dialog box showing one message, beside Aster's mark when the message is from Aster.
  *
  * <p>The layout is described in {@code /view/DialogBox.fxml}. A message from the user
- * sits on the right with the picture after it, while a reply from Aster is flipped so
- * the picture comes first on the left, which keeps the two sides of the conversation
- * easy to tell apart.
+ * sits on the right, while a reply from Aster is flipped so its mark comes first on the
+ * left, which keeps the two sides of the conversation easy to tell apart.
  *
  * <p>Each dialog box also carries exactly one style class saying whose message it is, or
  * that it is a reply containing an error, so the stylesheet can show each kind its own
  * way. A reply containing an error sits on Aster's side like any other reply.
  *
- * <p>Pictures are shown small and round. A message from the user is kept to three
+ * <p>Aster's replies show Aster's mark beside them; the user's messages are shown without
+ * a picture, set apart by their side and colour. A message from the user is kept to three
  * quarters of the row, so short commands read as compact entries, while Aster's replies,
  * which can hold a lot of text, may use the whole row.
  */
@@ -39,8 +38,6 @@ public class DialogBox extends HBox {
     static final String ASTER_STYLE_CLASS = "aster-dialog";
     static final String ERROR_STYLE_CLASS = "error-dialog";
 
-    // Half the 40 px picture size set in DialogBox.fxml, so the circle fills the picture.
-    private static final double PICTURE_RADIUS = 20;
     private static final double USER_MESSAGE_WIDTH_RATIO = 0.75;
 
     @FXML
@@ -49,13 +46,12 @@ public class DialogBox extends HBox {
     private ImageView displayPicture;
 
     /**
-     * Creates a dialog box with the message on the left and the picture on the right.
+     * Creates a dialog box with the message on the left and room for a picture on the right.
      *
      * @param text the message to show.
-     * @param image the picture of whoever said it.
      * @param kindStyleClass the one style class saying what kind of message this is.
      */
-    private DialogBox(String text, Image image, String kindStyleClass) {
+    private DialogBox(String text, String kindStyleClass) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(DialogBox.class.getResource("/view/DialogBox.fxml"));
             fxmlLoader.setController(this);
@@ -67,9 +63,6 @@ public class DialogBox extends HBox {
             throw new UncheckedIOException("Could not load the dialog box layout.", e);
         }
         dialog.setText(text);
-        displayPicture.setImage(image);
-        // A node can clip only one other node, so every picture gets a circle of its own.
-        displayPicture.setClip(new Circle(PICTURE_RADIUS, PICTURE_RADIUS, PICTURE_RADIUS));
         getStyleClass().add(kindStyleClass);
     }
 
@@ -77,12 +70,12 @@ public class DialogBox extends HBox {
      * Returns a dialog box for a message the user sent.
      *
      * @param text the message, exactly as the user typed it.
-     * @param image the user's picture.
-     * @return a dialog box with the picture on the right, its message kept to three
-     *     quarters of the row.
+     * @return a dialog box on the right with no picture, its message kept to three quarters
+     *     of the row.
      */
-    public static DialogBox getUserDialog(String text, Image image) {
-        DialogBox dialogBox = new DialogBox(text, image, USER_STYLE_CLASS);
+    public static DialogBox getUserDialog(String text) {
+        DialogBox dialogBox = new DialogBox(text, USER_STYLE_CLASS);
+        dialogBox.hidePicture();
         dialogBox.limitMessageWidth();
         return dialogBox;
     }
@@ -91,11 +84,12 @@ public class DialogBox extends HBox {
      * Returns a dialog box for a reply from Aster.
      *
      * @param text the reply, with its lines separated by line breaks.
-     * @param image Aster's picture.
-     * @return a dialog box with the picture on the left.
+     * @param image Aster's mark.
+     * @return a dialog box with the mark on the left.
      */
     public static DialogBox getAsterDialog(String text, Image image) {
-        DialogBox dialogBox = new DialogBox(text, image, ASTER_STYLE_CLASS);
+        DialogBox dialogBox = new DialogBox(text, ASTER_STYLE_CLASS);
+        dialogBox.displayPicture.setImage(image);
         dialogBox.flip();
         return dialogBox;
     }
@@ -106,13 +100,22 @@ public class DialogBox extends HBox {
      * <p>It sits on Aster's side like any other reply, and is styled so that it stands out.
      *
      * @param text the reply, with its lines separated by line breaks.
-     * @param image Aster's picture.
-     * @return a dialog box with the picture on the left, marked as containing an error.
+     * @param image Aster's mark.
+     * @return a dialog box with the mark on the left, marked as containing an error.
      */
     public static DialogBox getErrorDialog(String text, Image image) {
-        DialogBox dialogBox = new DialogBox(text, image, ERROR_STYLE_CLASS);
+        DialogBox dialogBox = new DialogBox(text, ERROR_STYLE_CLASS);
+        dialogBox.displayPicture.setImage(image);
         dialogBox.flip();
         return dialogBox;
+    }
+
+    /**
+     * Removes the picture from this dialog box, so the message alone fills its side of the row.
+     */
+    private void hidePicture() {
+        displayPicture.setVisible(false);
+        displayPicture.setManaged(false);
     }
 
     /**

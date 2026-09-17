@@ -32,8 +32,7 @@ public class MainWindow {
     @FXML
     private Button sendButton;
 
-    // Both avatars are original images drawn for Aster.
-    private final Image userImage = new Image(MainWindow.class.getResourceAsStream("/images/user.png"));
+    // The Aster mark is original artwork drawn for Aster.
     private final Image asterImage = new Image(MainWindow.class.getResourceAsStream("/images/aster.png"));
 
     private Aster aster;
@@ -90,7 +89,7 @@ public class MainWindow {
             return;
         }
 
-        dialogContainer.getChildren().add(DialogBox.getUserDialog(input, userImage));
+        dialogContainer.getChildren().add(DialogBox.getUserDialog(input));
         Response reply = aster.getResponse(input);
         showAsterReply(reply);
         if (reply.isExit()) {
