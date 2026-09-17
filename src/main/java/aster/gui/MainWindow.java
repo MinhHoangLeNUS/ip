@@ -100,12 +100,16 @@ public class MainWindow {
     }
 
     /**
-     * Adds a dialog box showing one of Aster's replies.
+     * Adds a dialog box showing one of Aster's replies, marked as an error if the reply
+     * contains one.
      *
      * @param reply the reply to show.
      */
     private void showAsterReply(Response reply) {
-        dialogContainer.getChildren().add(DialogBox.getAsterDialog(reply.message(), asterImage));
+        DialogBox dialogBox = reply.isError()
+                ? DialogBox.getErrorDialog(reply.message(), asterImage)
+                : DialogBox.getAsterDialog(reply.message(), asterImage);
+        dialogContainer.getChildren().add(dialogBox);
     }
 
     /**
