@@ -19,9 +19,9 @@ import javafx.stage.Stage;
  * around one Aster.
  */
 public class Main extends Application {
-    // The smallest window in which the message field, the Send button and at least one
-    // reply all remain usable.
-    private static final double MIN_HEIGHT = 220;
+    // The smallest window in which the header, the message field, the Send button and a
+    // few replies all remain usable.
+    private static final double MIN_HEIGHT = 360;
     private static final double MIN_WIDTH = 417;
 
     private final Aster aster = new Aster();
