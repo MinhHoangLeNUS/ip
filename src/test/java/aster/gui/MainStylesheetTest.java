@@ -51,6 +51,20 @@ class MainStylesheetTest {
     }
 
     @Test
+    void stylesheet_windowParts_haveRules() throws IOException {
+        URL stylesheet = MainStylesheetTest.class.getResource("/css/main.css");
+        assertNotNull(stylesheet, "the stylesheet must be on the class path");
+        String css = readText(stylesheet);
+
+        String[] selectors = {".app-header", ".header-title", ".header-subtitle", ".conversation",
+            ".composer", ".composer-field", ".composer-field:focused", ".composer-field:disabled",
+            ".send-button", ".send-button:hover", ".send-button:pressed", ".send-button:disabled"};
+        for (String selector : selectors) {
+            assertTrue(css.contains(selector), "the stylesheet must style " + selector);
+        }
+    }
+
+    @Test
     void stylesheet_userAndAsterDialogs_haveBubbleRules() throws IOException {
         URL stylesheet = MainStylesheetTest.class.getResource("/css/main.css");
         assertNotNull(stylesheet, "the stylesheet must be on the class path");

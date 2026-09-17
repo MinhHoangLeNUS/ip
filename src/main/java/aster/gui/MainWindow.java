@@ -9,6 +9,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -25,6 +26,8 @@ public class MainWindow {
 
     @FXML
     private ScrollPane scrollPane;
+    @FXML
+    private StackPane conversationColumn;
     @FXML
     private VBox dialogContainer;
     @FXML
@@ -44,14 +47,16 @@ public class MainWindow {
     }
 
     /**
-     * Keeps the newest message in view whenever a dialog box is added.
+     * Keeps the newest message in view whenever the conversation grows.
      *
-     * <p>A listener is used rather than binding the scroll position, so the user can
-     * still scroll back up to read earlier messages.
+     * <p>The column holding the conversation is what scrolls, so its height, rather than the
+     * height of the messages inside it, decides how far there is to scroll. A listener is
+     * used rather than binding the scroll position, so the user can still scroll back up to
+     * read earlier messages.
      */
     @FXML
     public void initialize() {
-        dialogContainer.heightProperty().addListener(observable -> scrollPane.setVvalue(1.0));
+        conversationColumn.heightProperty().addListener(observable -> scrollPane.setVvalue(1.0));
     }
 
     /**

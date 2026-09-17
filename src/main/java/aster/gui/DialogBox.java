@@ -134,11 +134,17 @@ public class DialogBox extends HBox {
     /**
      * Returns the widest the message may be, given this dialog box's current width.
      *
-     * @return three quarters of the width, or no limit while the width is still zero.
+     * <p>The limit is rounded down to a whole pixel, because the laid-out message is snapped
+     * to whole pixels and could otherwise end up slightly wider than three quarters.
+     *
+     * @return three quarters of the width rounded down to a whole pixel, or no limit while
+     *     the width is still zero.
      */
     private double computeMessageWidthLimit() {
         double width = getWidth();
-        return width > 0 ? width * USER_MESSAGE_WIDTH_RATIO : Double.MAX_VALUE;
+        return width > 0
+                ? Math.floor(width * USER_MESSAGE_WIDTH_RATIO)
+                : Double.MAX_VALUE;
     }
 
     /**
