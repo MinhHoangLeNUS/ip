@@ -101,7 +101,7 @@ public class Aster {
      * <p>If the saved tasks cannot be read, the reply explains why and ends the
      * conversation, so that no command is carried out and a file which may still be
      * worth keeping is not written over. This mirrors {@link #run()} stopping before it
-     * takes any command.
+     * takes any command. Such a reply contains an error; the greeting does not.
      *
      * @return the greeting, or the reason the conversation cannot start.
      */
@@ -112,10 +112,10 @@ public class Aster {
             loadTasks();
         } catch (AsterException e) {
             reply.showError(e.getMessage());
-            return new Response(joinLines(lines), true);
+            return new Response(joinLines(lines), true, true);
         }
         reply.showGreeting();
-        return new Response(joinLines(lines), false);
+        return new Response(joinLines(lines), false, false);
     }
 
     /**
@@ -130,8 +130,11 @@ public class Aster {
      * The text interface's dividers still mark that exchange, but a reply here would be
      * blank, so it says that the list is empty instead.
      *
+     * <p>The reply contains an error whenever carrying out the command reported one. The
+     * farewell never does.
+     *
      * @param input the message exactly as the user typed it.
-     * @return the reply, and whether it ends the conversation.
+     * @return the reply, whether it ends the conversation, and whether it contains an error.
      * @throws IllegalStateException if the conversation has not started successfully.
      */
     public Response getResponse(String input) {
@@ -143,13 +146,13 @@ public class Aster {
         Ui reply = new Ui(lines::add);
         if (Parser.isExit(fullCommand)) {
             reply.showFarewell();
-            return new Response(joinLines(lines), true);
+            return new Response(joinLines(lines), true, false);
         }
-        carryOut(fullCommand, reply);
+        boolean isError = carryOut(fullCommand, reply);
         if (lines.isEmpty()) {
             reply.showEmptyList();
         }
-        return new Response(joinLines(lines), false);
+        return new Response(joinLines(lines), false, isError);
     }
 
     /**
@@ -170,16 +173,22 @@ public class Aster {
      * <p>Every failure surfaces in this one place, so nothing else reports errors, and
      * the task list keeps its previous contents whenever a command is refused.
      *
+     * <p>A change that was made but could not be saved is reported here too, after the
+     * lines describing the change, so that reply also contains an error.
+     *
      * @param fullCommand the trimmed command line, which is not {@code bye}.
      * @param target the interface to report the outcome through.
+     * @return {@code true} if the reply contains an error, otherwise {@code false}.
      */
-    private void carryOut(String fullCommand, Ui target) {
+    private boolean carryOut(String fullCommand, Ui target) {
         assert tasks != null : "The saved tasks must be loaded before any command is carried out";
         assert !Parser.isExit(fullCommand) : "bye must be handled by the caller, not carried out";
         try {
             Parser.parse(fullCommand).execute(tasks, target, storage);
+            return false;
         } catch (AsterException e) {
             target.showError(e.getMessage());
+            return true;
         }
     }
 

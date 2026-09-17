@@ -69,6 +69,7 @@ class AsterTest {
 
         assertEquals(GREETING, opening.message());
         assertFalse(opening.isExit());
+        assertFalse(opening.isError());
     }
 
     @Test
@@ -82,6 +83,7 @@ class AsterTest {
         Response opening = aster.startConversation();
 
         assertTrue(opening.isExit());
+        assertTrue(opening.isError());
         assertTrue(opening.message().startsWith("I couldn't read your saved tasks from "),
                 "the reply must explain the loading failure: " + opening.message());
         assertThrows(IllegalStateException.class, () -> aster.getResponse("list"),
@@ -107,6 +109,7 @@ class AsterTest {
                 + "  [T][ ] read book\n"
                 + "Now you have 1 task in the list.", reply.message());
         assertFalse(reply.isExit());
+        assertFalse(reply.isError());
     }
 
     @Test
@@ -126,6 +129,7 @@ class AsterTest {
         assertEquals("I don't recognize \"blah\". I understand: todo, deadline, event, list, "
                 + "find, stats, mark, unmark, delete and bye.", reply.message());
         assertFalse(reply.isExit());
+        assertTrue(reply.isError());
     }
 
     @Test
@@ -134,6 +138,7 @@ class AsterTest {
 
         assertEquals("Goodbye for now. Take care!", reply.message());
         assertTrue(reply.isExit());
+        assertFalse(reply.isError());
     }
 
     @Test
@@ -142,6 +147,7 @@ class AsterTest {
 
         assertEquals("To leave, type bye on its own, with nothing after it.", reply.message());
         assertFalse(reply.isExit());
+        assertTrue(reply.isError());
     }
 
     @Test
@@ -158,6 +164,7 @@ class AsterTest {
 
         assertEquals("Your list is empty.", reply.message());
         assertFalse(reply.isExit());
+        assertFalse(reply.isError());
     }
 
     @Test
@@ -167,6 +174,7 @@ class AsterTest {
         assertEquals("I didn't catch a command. Type list to see your tasks, or bye to leave.",
                 reply.message());
         assertFalse(reply.isExit());
+        assertTrue(reply.isError());
     }
 
     @Test
@@ -185,6 +193,7 @@ class AsterTest {
                 + "Not completed: 2\n"
                 + "Todos: 1, Deadlines: 1, Events: 1", reply.message());
         assertFalse(reply.isExit());
+        assertFalse(reply.isError());
     }
 
     @Test
@@ -227,6 +236,7 @@ class AsterTest {
         assertEquals("This task is already marked as done:\n"
                 + "  [T][X] read book", reply.message());
         assertFalse(reply.isExit());
+        assertFalse(reply.isError());
         assertArrayEquals(before, Files.readAllBytes(file),
                 "marking a task that is already done must leave the saved file as it was");
         assertEquals("1. [T][X] read book", aster.getResponse("list").message());
@@ -244,6 +254,7 @@ class AsterTest {
         assertEquals("This task is already marked as not done:\n"
                 + "  [T][ ] read book", reply.message());
         assertFalse(reply.isExit());
+        assertFalse(reply.isError());
         assertArrayEquals(before, Files.readAllBytes(file),
                 "unmarking a task that is not done must leave the saved file as it was");
         assertEquals("1. [T][ ] read book", aster.getResponse("list").message());
@@ -261,9 +272,44 @@ class AsterTest {
         assertEquals("An event needs its /to date on or after its /from date. "
                 + "Try: event project meeting /from 2019-12-02 /to 2019-12-03", reply.message());
         assertFalse(reply.isExit());
+        assertTrue(reply.isError());
         assertArrayEquals(before, Files.readAllBytes(file),
                 "a refused event must leave the saved file exactly as it was");
         assertEquals("1. [T][ ] read book", aster.getResponse("list").message());
+    }
+
+    @Test
+    void getResponse_markNumberOutOfRange_returnsErrorFlagged() {
+        Aster aster = startedAster();
+        aster.getResponse("todo read book");
+
+        Response reply = aster.getResponse("mark 5");
+
+        assertEquals("You have 1 task, so 5 is out of range. Pick a number from 1 to 1.",
+                reply.message());
+        assertFalse(reply.isExit());
+        assertTrue(reply.isError());
+    }
+
+    @Test
+    void getResponse_changeThatCannotBeSaved_returnsSuccessLinesFlaggedAsError() throws IOException {
+        Path folder = tempDir.resolve("data");
+        Aster aster = new Aster(folder.resolve(DATA_FILE_NAME));
+        assertFalse(aster.startConversation().isExit(), "nothing is saved yet, so the start must succeed");
+        // A plain file now stands where saving must create a folder. Creating that folder
+        // fails the same way on every operating system, with no file permissions involved.
+        Files.createFile(folder);
+
+        Response reply = aster.getResponse("todo read book");
+
+        assertEquals("Got it. I've added this task:\n"
+                + "  [T][ ] read book\n"
+                + "Now you have 1 task in the list.\n"
+                + "I couldn't save your tasks. Your latest changes may not be available next time.",
+                reply.message());
+        assertFalse(reply.isExit());
+        assertTrue(reply.isError());
+        assertTrue(Files.isRegularFile(folder), "the file in the folder's place must be left as it was");
     }
 
     @Test
