@@ -35,6 +35,28 @@ class UiTest {
     }
 
     @Test
+    void showAlreadyMarked_doneTask_sendsTwoLines() {
+        List<String> lines = new ArrayList<>();
+        Todo task = new Todo("read book");
+        task.markAsDone();
+
+        new Ui(lines::add).showAlreadyMarked(task);
+
+        assertEquals(List.of("This task is already marked as done:",
+                "  [T][X] read book"), lines);
+    }
+
+    @Test
+    void showAlreadyUnmarked_taskNotDone_sendsTwoLines() {
+        List<String> lines = new ArrayList<>();
+
+        new Ui(lines::add).showAlreadyUnmarked(new Todo("read book"));
+
+        assertEquals(List.of("This task is already marked as not done:",
+                "  [T][ ] read book"), lines);
+    }
+
+    @Test
     void showWelcome_lineWriter_framesGreetingWithDividers() {
         List<String> lines = new ArrayList<>();
 
