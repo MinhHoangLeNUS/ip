@@ -9,9 +9,13 @@ import java.time.LocalDate;
  * {@link Deadline}: Aster can then tell a date from any other wording and show it in
  * a friendlier form than the one it is typed in.
  *
- * <p>The end is not required to fall on or after the start. Nothing in the task
- * description says it must, so an event that reads backwards is accepted rather than
- * refused on a rule Aster invented.
+ * <p>An event is not required to span more than one day: an event that starts and ends
+ * on the same date is an ordinary whole-day event.
+ *
+ * <p>This class accepts whatever endpoints it is given, including an end before the
+ * start. Refusing that pair is a check on what the user types, so it lives in the parser;
+ * keeping it out of here is what lets a file holding such an event still be read back
+ * rather than locking the user out of their saved tasks.
  */
 public class Event extends Task {
     private final LocalDate from;

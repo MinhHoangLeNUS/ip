@@ -215,6 +215,23 @@ class AsterTest {
     }
 
     @Test
+    void getResponse_eventEndingBeforeItStarts_leavesSavedFileAndListUnchanged() throws IOException {
+        Aster aster = startedAster();
+        aster.getResponse("todo read book");
+        Path file = tempDir.resolve(DATA_FILE_NAME);
+        byte[] before = Files.readAllBytes(file);
+
+        Response reply = aster.getResponse("event project meeting /from 2019-08-08 /to 2019-08-06");
+
+        assertEquals("An event needs its /to date on or after its /from date. "
+                + "Try: event project meeting /from 2019-12-02 /to 2019-12-03", reply.message());
+        assertFalse(reply.isExit());
+        assertArrayEquals(before, Files.readAllBytes(file),
+                "a refused event must leave the saved file exactly as it was");
+        assertEquals("1. [T][ ] read book", aster.getResponse("list").message());
+    }
+
+    @Test
     void getResponse_statsWithArguments_returnsNoArgumentsErrorNotExit() {
         Response reply = startedAster().getResponse("stats extra");
 
